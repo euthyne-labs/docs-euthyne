@@ -49,16 +49,16 @@ Receipts signed before a revocation stay valid, with a note. If a key was compro
 
 **Steps**
 
-1. **Anchor.** Follow the OpenTimestamps proof for the checkpoint, or for a later consistent checkpoint, to a Bitcoin block header.
-2. Check that header against a Bitcoin node you run, or against two independent block explorer APIs.
+1. **Anchor.** Follow the OpenTimestamps proof for the checkpoint, or for a later consistent checkpoint, to its anchor.
+2. Check that anchor against a node you run, or against two independent public sources.
 
-**Proves:** the checkpoint, and every receipt under it, existed before that block was mined. This does not depend on Euthyne.
+**Proves:** the checkpoint, and every receipt under it, existed before the anchor time. This does not depend on Euthyne.
 
 **Does not prove:**
 
 - When the action happened. It is an upper bound only.
 - Anything before it arrives. The anchor lands a few hours after logging.
-- Offline, without a node, the block header cannot be checked. `euthyne verify` reports it as not checked.
+- Offline, without a node, the anchor cannot be checked. `euthyne verify` reports it as not checked.
 
 ## 4. Every commit accounted for, reviewed by someone else
 
@@ -88,7 +88,7 @@ For change receipts only.
 | Session chain | Local | Browser |
 | Inclusion | Local | Browser |
 | Consistency | Needs the network | Browser |
-| Anchor | Needs a Bitcoin node or two block explorer APIs | Browser, with two block explorer APIs |
+| Anchor | Needs a node you run or two independent public sources | Browser, with two independent public sources |
 | Coverage | Local | Browser |
 
 On the verify page, every check runs in your browser. The server only serves the raw artifacts.

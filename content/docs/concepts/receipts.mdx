@@ -27,11 +27,11 @@ Receipts are signed with a short-lived session key. Your device key certifies th
 
 ## From signed to witnessed
 
-After upload, Euthyne checks the receipt and appends its digest to a public, append-only log. Later, the log state is timestamped in Bitcoin through OpenTimestamps. Each step raises the receipt's trust level. See [Trust levels](/docs/concepts/trust-levels).
+After upload, Euthyne checks the receipt and appends its digest to a public, append-only log. Later, the log state is timestamped independently through OpenTimestamps. Each step raises the receipt's trust level. See [Trust levels](/docs/concepts/trust-levels).
 
 ## What a receipt does not prove
 
 - It does not show that the action was correct, safe or intended.
 - It does not show the content. The content is a salted hash. You can reveal one field to an auditor with [`euthyne reveal`](/docs/cli/reveal).
 - It does not show that every action was recorded. A developer can turn hooks off. A gap inside a session breaks the session chain. A session that was never recorded shows on the forge side, as a merge without receipts.
-- Its time comes from the device clock. The log and the Bitcoin timestamp give later bounds that do not depend on the device.
+- Its time comes from the device clock. The log and the independent timestamp give later bounds that do not depend on the device.
