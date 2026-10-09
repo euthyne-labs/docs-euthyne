@@ -13,8 +13,8 @@ import {
 import { useStaticSearch } from 'fumadocs-core/search/client';
 import { useI18n } from 'fumadocs-ui/contexts/i18n';
 
-export default function DefaultSearchDialog(props: SharedProps) {
-  const { locale } = useI18n(); // (optional) for i18n
+export function DocsSearchDialog(props: SharedProps) {
+  const { locale } = useI18n();
   const search = useStaticSearch({
     locale,
   });

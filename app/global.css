@@ -1,12 +1,62 @@
 @import 'tailwindcss';
-@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/black.css';
 @import 'fumadocs-ui/css/preset.css';
+
+@theme {
+  --font-sans: var(--font-general-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-euthyne-amber: #ffb547;
+  --color-fd-ring: var(--color-euthyne-amber);
+}
+
+:root {
+  --font-general-sans: 'General Sans';
+}
+
+@theme static {
+  --color-fd-info: #8c8f94;
+}
+
+.dark {
+  --color-fd-background: #0b0b0c;
+  --color-fd-foreground: #ededed;
+  --color-fd-muted: #141416;
+  --color-fd-muted-foreground: #8c8f94;
+  --color-fd-popover: #141416;
+  --color-fd-popover-foreground: #ededed;
+  --color-fd-card: #141416;
+  --color-fd-card-foreground: #ededed;
+  --color-fd-primary: #ededed;
+  --color-fd-primary-foreground: #0b0b0c;
+  --color-fd-secondary: #141416;
+  --color-fd-secondary-foreground: #ededed;
+  --color-fd-ring: var(--color-euthyne-amber);
+}
 
 html {
   scrollbar-gutter: stable;
+  font-synthesis-weight: none;
 }
 
 html > body[data-scroll-locked] {
   margin-right: 0px !important;
   --removed-body-scroll-bar-size: 0px !important;
+}
+
+:focus-visible {
+  outline-color: var(--color-euthyne-amber);
+}
+
+#nd-sidebar a[data-active='true']::before,
+#nd-sidebar-mobile a[data-active='true']::before {
+  background-color: var(--color-euthyne-amber);
+}
+
+.grain {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.04;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
