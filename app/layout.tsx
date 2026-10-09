@@ -5,6 +5,7 @@ import { GENERAL_SANS_CSS_URL, jetbrainsMono } from '@/lib/fonts';
 import './global.css';
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://docs.euthyne.com'),
   title: {
     default: 'Euthyne docs',
     template: '%s | Euthyne docs',
