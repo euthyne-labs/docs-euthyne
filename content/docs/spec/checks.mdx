@@ -1,0 +1,94 @@
+---
+title: The four checks
+description: Draft. What each check proves, what it does not prove, and how to run it.
+---
+
+Verification is four checks. The first three apply to every receipt. The fourth applies to change receipts.
+
+| Check | Steps | Trust level |
+| --- | --- | --- |
+| 1. Signed by a registered device | Signature, key binding, session chain | Signed |
+| 2. Recorded in a public log | Inclusion, consistency | Witnessed |
+| 3. Timestamped independently | Anchor | Witnessed, timestamp no longer pending |
+| 4. Every commit accounted for, reviewed by someone else | Coverage | Full proof |
+
+## 1. Signed by a registered device
+
+**Steps**
+
+1. **Signature.** Verify the Ed25519 signature over the DSSE PAE with the session key. Verify that the device key signed the session key's certificate, and that the receipt falls in its validity window.
+2. **Key binding.** Verify the device credential: a `vc+jwt` signed by a key in Euthyne's DID log, binding the device key to the human and the organization. Check that the device key was not revoked at the receipt's log index.
+3. **Session chain.** Check that `seq` has no gaps and each `prev` matches the digest of the receipt before it.
+
+**Proves:** a key bound to this human and organization signed this exact receipt, and no receipt in the session chain was dropped or changed between the ones you hold.
+
+**Does not prove:**
+
+- When it was signed. The time is the device clock.
+- That the content was true, or that the hook saw every action.
+- That the human, rather than someone else with access to the device, ran the session.
+
+Receipts signed before a revocation stay valid, with a note. If a key was compromised earlier, an admin can mark the date, and later receipts are flagged.
+
+## 2. Recorded in a public log
+
+**Steps**
+
+1. **Inclusion.** Verify the inclusion proof from the leaf, `type_byte || SHA-256(envelope)`, up to a checkpoint signed by the log key.
+2. **Consistency.** Verify that the checkpoint is consistent with the latest checkpoint from an independent copy of the log. This catches a forked log, where you are shown one history and others see another.
+
+**Proves:** the receipt existed when the checkpoint was signed, and the log has not been rewritten to remove or change it.
+
+**Does not prove:**
+
+- Anything about the content.
+- An independent time. Until the timestamp lands, the time bound rests on Euthyne's checkpoint signature.
+- Inclusion alone does not catch a fork. That takes the consistency step, which needs the network.
+
+## 3. Timestamped independently
+
+**Steps**
+
+1. **Anchor.** Follow the OpenTimestamps proof for the checkpoint, or for a later consistent checkpoint, to a Bitcoin block header.
+2. Check that header against a Bitcoin node you run, or against two independent block explorer APIs.
+
+**Proves:** the checkpoint, and every receipt under it, existed before that block was mined. This does not depend on Euthyne.
+
+**Does not prove:**
+
+- When the action happened. It is an upper bound only.
+- Anything before it arrives. The anchor lands a few hours after logging.
+- Offline, without a node, the block header cannot be checked. `euthyne verify` reports it as not checked.
+
+## 4. Every commit accounted for, reviewed by someone else
+
+For change receipts only.
+
+**Steps**
+
+1. Verify the change receipt's signature with Euthyne's service key from the DID log.
+2. Recompute the Merkle root of the linked sessions' receipt digests and compare it with the signed value.
+3. Check that `coverage` is `covered`.
+4. Check for an approval on the final head whose reviewer is neither the author nor the launching human.
+
+**Proves:** at merge time, Euthyne signed these coverage and approval facts, and the linked sessions are exactly the listed receipts.
+
+**Does not prove:**
+
+- That approvals are genuine reviews. They are reported by the forge, and the reviewer does not sign them.
+- That no other agent work exists. Coverage is based on what Euthyne saw in receipts and on the forge.
+- Anything about code quality.
+
+## Where the checks run
+
+| Step | `euthyne verify` | Verify page |
+| --- | --- | --- |
+| Signature | Local | Browser |
+| Key binding | Local, with a cached DID log | Browser |
+| Session chain | Local | Browser |
+| Inclusion | Local | Browser |
+| Consistency | Needs the network | Browser |
+| Anchor | Needs a Bitcoin node or two block explorer APIs | Browser, with two block explorer APIs |
+| Coverage | Local | Browser |
+
+On the verify page, every check runs in your browser. The server only serves the raw artifacts.

@@ -1,0 +1,16 @@
+---
+title: euthyne reveal
+description: Reveal one committed field to an auditor.
+---
+
+<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+
+```bash
+euthyne reveal <receipt> <field>
+```
+
+Prints the salt and the value for one field of one receipt, for example `tool_input`. The auditor recomputes the commitment and checks it matches the receipt.
+
+Revealing one field opens nothing else. It only works on the device that holds the commitment key, or with your organization's own copy of that key.
+
+See [Commitments](/docs/spec/commitments).

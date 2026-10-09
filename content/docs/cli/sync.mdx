@@ -1,0 +1,19 @@
+---
+title: euthyne sync
+description: Upload queued receipts.
+---
+
+<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+
+```bash
+euthyne sync
+```
+
+Uploads receipts from the local queue. [`hook`](/docs/cli/hook) starts it in the background, so you rarely run it by hand.
+
+- Receipts are uploaded in batches.
+- On failure, it retries with backoff, from 1 second up to 5 minutes.
+- A receipt counts as sent once the server returns its digest and log index.
+- Sent receipts stay on disk for 7 days, then are pruned.
+
+The queue lives under `~/.local/share/euthyne/spool/` and survives restarts.

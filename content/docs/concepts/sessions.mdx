@@ -1,0 +1,40 @@
+---
+title: Sessions and the forensic path
+description: How receipts group into sessions, and how you trace a change back to each action.
+---
+
+A session is one run of an agent harness on one device. It starts when Claude Code or Codex opens a session and ends when the session closes. Every receipt belongs to one session.
+
+## The session chain
+
+Each receipt carries three session fields:
+
+- `id`: the session ID.
+- `seq`: the receipt's position in the session.
+- `prev`: the digest of the previous receipt in the session.
+
+Together they form a chain. If a receipt is dropped, inserted or reordered, the chain breaks and verification reports it.
+
+## Inside a session
+
+- **Subagents.** Actions from a Claude Code subagent carry the subagent's ID and type, so they are attributed inside the parent session.
+- **Model changes.** A model switch during the session is recorded.
+- **Turn ends.** At the end of each agent turn, the CLI records `HEAD` and the blob hashes of the files the agent touched. Euthyne uses these to link the session to a pull request later.
+
+## Session keys
+
+When a session starts, the CLI reads your device key from the keychain once and uses it to certify a session key. The session key is valid for 24 hours at most and is discarded when the session ends. Receipts in the session are signed with it. A verifier checks both signatures.
+
+## The forensic path
+
+The dashboard is organized around agent activity. You start from what you know and follow links:
+
+- From a merged pull request to the sessions linked to it, then to each action: tool, file and outcome.
+- From a file path to the changes that touched it, with the agents, models, the human who launched each session, and the approvers.
+- From any action to its receipt and its proofs.
+
+Proof details, such as signatures, log inclusion and timestamps, sit behind each action. They are there when you need them.
+
+## What sessions cannot show
+
+Work done outside a hooked harness has no session. That includes edits by hand, agents Euthyne does not support yet, and cloud agent runs that do not run local hooks. These changes reach Euthyne only through the forge. See [Changes](/docs/concepts/changes) and [Detected signals](/docs/concepts/detected-signals).

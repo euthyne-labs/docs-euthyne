@@ -1,0 +1,54 @@
+---
+title: Offline verification
+description: Draft. Running the checks on your machine with euthyne verify.
+---
+
+<Callout title="Coming soon">
+  `euthyne verify` is not released yet. This page describes the planned behavior.
+</Callout>
+
+`euthyne verify` runs [the four checks](/docs/spec/checks) on your machine. It does not ask Euthyne's servers for a verdict.
+
+## Usage
+
+```bash
+euthyne verify receipt.json --offline
+euthyne verify --last
+```
+
+- A file path verifies a saved receipt bundle.
+- `--last` verifies your most recent receipt.
+- `--offline` runs only the steps that need no network.
+- `--btc-node <url>` checks the Bitcoin block header against your own node.
+
+The command exits with `0` when the checks pass and `1` when one fails.
+
+## What runs offline
+
+| Step | Offline |
+| --- | --- |
+| Signature | Yes |
+| Key binding | Yes, with a cached copy of Euthyne's DID log |
+| Session chain | Yes |
+| Inclusion | Yes, from the proof in the bundle |
+| Consistency | No, it needs the latest checkpoint from an independent copy of the log |
+| Anchor | Only with `--btc-node`. Otherwise reported as "header not checked" |
+| Coverage | Yes |
+
+## The receipt bundle
+
+A bundle grows as proofs arrive:
+
+1. The signed envelope.
+2. The inclusion proof and the signed checkpoint.
+3. The anchored checkpoint, with its consistency proof and OpenTimestamps proof.
+
+The bundle format is not specified yet.
+
+## Pinned keys
+
+The CLI pins Euthyne's keys from its DID log. A key that is not in the pinned log fails key binding.
+
+## Your own verifier
+
+This spec is meant to be enough to write another verifier. Test vectors are planned: a genuine receipt, a tampered one, a wrong key, a wrong log index and a forked checkpoint. An open source verifier package is planned too.

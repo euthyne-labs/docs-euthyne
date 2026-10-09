@@ -1,13 +1,47 @@
 ---
-title: Hello World
-description: Your first document
+title: What is Euthyne
+description: What Euthyne records, what it can prove, and what it cannot.
 ---
 
-Welcome to the docs! You can start writing documents in `/content/docs`.
+<Callout title="Preview">
+  The CLI, the API and the dashboard are not released yet. These pages describe the planned design.
+  Details may change before release.
+</Callout>
 
-## What is Next?
+Euthyne records what coding agents do in your repositories. Each agent action becomes a signed record, called a receipt. When a pull request merges, Euthyne links it to the agent sessions behind it and to the people who approved it.
+
+Anyone with a receipt can check it. They do not need an Euthyne account, and they do not need to trust Euthyne's servers.
+
+## The questions it answers
+
+- Which agent changed this file, and with which model?
+- Who launched the agent session?
+- Which pull request carried the change, and who approved it?
+- Was the approver someone other than the author and the person who launched the agent?
+
+## How it works
+
+1. You run `euthyne init` in a repository. It signs you in, creates a key for your machine, and installs hooks in your agent harness.
+2. Each time the agent uses a tool, the hook signs a receipt on your machine. The receipt holds metadata in clear and the content as salted hashes.
+3. The CLI uploads receipts in the background. Euthyne adds each one to an append-only public log.
+4. When a pull request merges, Euthyne writes a change receipt. It lists the linked sessions, the approvals and the CI result.
+5. Anyone can verify a receipt in the browser, or offline with `euthyne verify`.
+
+## What it supports first
+
+- Agent harnesses: Claude Code and Codex. Other harnesses are not supported yet.
+- Git hosts: GitHub. GitLab support is planned.
+
+## What it does not do
+
+- It does not store your prompts, code, diffs or command output. They leave your machine only as salted hashes. See [What we store](/docs/concepts/what-we-store).
+- It does not block or approve anything. It records what happened.
+- It cannot prove that every agent action was captured. Capture runs through hooks, and a developer can turn hooks off. Euthyne flags merges that have no receipts, but it cannot see agent work that never reached a hook or a pull request.
+- A receipt shows that an action was recorded and signed. It does not show that the action was correct or safe.
+
+## Next
 
 <Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
+  <Card title="Quickstart" href="/docs/quickstart" description="The planned first run, from install to first receipt." />
+  <Card title="Receipts" href="/docs/concepts/receipts" description="What a receipt contains and what it proves." />
 </Cards>

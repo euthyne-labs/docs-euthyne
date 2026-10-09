@@ -1,0 +1,52 @@
+---
+title: Commitments
+description: Draft. How content is committed with salted hashes, and how to check a reveal.
+---
+
+Receipts never carry content in clear. Each content field becomes a commitment: a salted SHA-256 hash.
+
+## The scheme
+
+Each device holds a 32-byte commitment key `K` in its OS keychain. `K` never leaves the machine.
+
+```text
+salt       = HMAC-SHA256(K, "euthyne/v1" || receipt_id || field)
+commitment = SHA-256(salt || value)
+```
+
+- `||` is byte concatenation.
+- `receipt_id` is the receipt's `id`.
+- `field` is the committed field name, the same as the `name` in the Statement's `subject`.
+
+The receipt's `salt_key` field names the commitment key ID and epoch, so a verifier knows which key a reveal must come from.
+
+<Callout title="Draft">
+  The exact byte encoding of the HMAC input and of each value is not final.
+</Callout>
+
+## Properties
+
+- **Hiding.** Without the salt, a commitment says nothing about the value, even a short or guessable one.
+- **Binding.** Given a salt and a value, anyone can recompute the commitment and compare.
+- **One field at a time.** Each salt comes from its own HMAC input. Revealing one salt tells nothing about any other.
+- **Nothing stored per receipt.** Salts are derived from `K` when needed.
+
+## Revealing a value
+
+```bash
+euthyne reveal <receipt> <field>
+```
+
+This prints the salt and the value for one field of one receipt. To check a reveal:
+
+1. Verify the receipt itself. See [the four checks](/docs/spec/checks).
+2. Compute `SHA-256(salt || value)`.
+3. Compare it with the digest of the matching `subject` entry.
+
+## Losing the key
+
+If a device is lost, its `K` is lost too. Old commitments can no longer be opened, but the receipts stay valid and verifiable. An organization may keep a copy of `K` in its own vault. Euthyne never holds it.
+
+## What a commitment does not prove
+
+A commitment binds the device to a value at signing time. It does not show that the hook received the true value from the harness. A revealed value is the value that was committed, nothing more.

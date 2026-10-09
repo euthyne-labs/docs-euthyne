@@ -1,0 +1,28 @@
+---
+title: Overview
+description: The planned euthyne commands.
+---
+
+<Callout title="Coming soon">
+  The CLI is not released yet. These pages describe planned commands. Names and flags may change.
+</Callout>
+
+`euthyne` is a single binary. It captures agent actions through hooks, signs receipts on your machine, uploads them, and verifies them.
+
+```bash
+brew install euthyne-labs/tap/euthyne
+```
+
+| Command | What it does |
+| --- | --- |
+| [`init`](/docs/cli/init) | Sets up a repository: sign in, device key, hooks, test receipt |
+| [`login`](/docs/cli/login) | Signs in with a device code |
+| [`hook`](/docs/cli/hook) | Called by the agent harness to sign one receipt |
+| [`sync`](/docs/cli/sync) | Uploads queued receipts |
+| [`status`](/docs/cli/status) | Shows the upload queue and setup |
+| [`verify`](/docs/cli/verify) | Verifies receipts and changes on your machine |
+| [`reveal`](/docs/cli/reveal) | Reveals one committed field to an auditor |
+| [`keys`](/docs/cli/keys) | Manages the device key |
+| [`mcp`](/docs/cli/mcp) | Runs a read-only MCP server |
+
+Keys and tokens live in your OS keychain: macOS Keychain, Windows Credential Manager or a Secret Service on Linux.

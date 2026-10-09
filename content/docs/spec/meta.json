@@ -1,0 +1,5 @@
+{
+  "title": "Verification spec (draft)",
+  "defaultOpen": true,
+  "pages": ["index", "action-receipt", "commitments", "checks", "offline-verification"]
+}

@@ -1,0 +1,64 @@
+---
+title: Changes
+description: Merged pull requests, linked to their sessions and approvals. This is the audit view.
+---
+
+A change is a merged pull request. Changes are the audit view: one record per merge, with the sessions behind it and who approved it.
+
+Changes need the Euthyne GitHub App on your organization. GitLab merge requests are planned and will follow the same model.
+
+## The change receipt
+
+When a pull request merges, Euthyne writes a change receipt. Euthyne signs it with its service key and adds it to the log. It records what Euthyne saw on the forge:
+
+- The repository, the pull request number, the head and final commit SHA, the merge method, the author, who merged it and when.
+- The linked sessions, how each one was linked, and a Merkle root of their receipt digests.
+- The approvals, each with the commit it reviewed.
+- The CI result.
+- The coverage verdict.
+- Agent markers found in commit metadata. These are listed as observed, never as fact. See [Detected signals](/docs/concepts/detected-signals).
+
+## How sessions are linked
+
+| Link | Signal | Confidence |
+| --- | --- | --- |
+| `commit_sha` | A receipt recorded a commit that is among the pull request's commits | High |
+| `blob_match` | File hashes recorded at the end of an agent turn match the merged tree | High |
+| `branch` | The session ran on the pull request's head branch | Medium |
+| `trailer` | A commit message contains `Euthyne-Session:` | Hint only, anyone can type it |
+
+Squash and rebase merges rewrite commit SHAs. The pull request still lists its original commits, so `commit_sha` links survive.
+
+## Coverage
+
+- `covered`: at least one high-confidence link, and every commit with an agent marker is explained by a linked session.
+- `partial`: only medium links, or some agent-marked commits are not explained.
+- `none`: no linked session.
+
+Each repository has a policy for which merges get flagged: every merge with `none`, or only those that also carry an agent marker. A flagged merge shows as **merged without receipts**.
+
+## Approvals
+
+For each review, Euthyne records three facts:
+
+- Was it on the final head commit?
+- Is the reviewer the author of the pull request?
+- Is the reviewer the human who launched an agent session for it?
+
+An approval counts toward [Full proof](/docs/concepts/trust-levels) only if it is on the final head and the reviewer is neither the author nor the launching human.
+
+Approvals come from the forge. The reviewer does not sign them. A change receipt states what the forge reported at merge time.
+
+## The pull request check
+
+On each push, the GitHub App posts a neutral check named Euthyne. It lists the sessions linked so far and links to the verify page. It is finalized at merge. It never fails a pull request.
+
+## What the GitHub App reads
+
+Pull requests, reviews, checks, commit metadata and git trees. A git tree gives file paths and hashes, not file contents. Euthyne never stores file contents. The list of GitHub API endpoints the app calls will be published.
+
+## What a change receipt does not prove
+
+- It does not show that the code is correct.
+- It does not show that a commit without an agent marker was written without an agent.
+- It shows approvals as the forge reported them. It does not prove the reviewer read the code.

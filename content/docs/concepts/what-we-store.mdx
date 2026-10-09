@@ -1,0 +1,47 @@
+---
+title: What we store
+description: Metadata in clear, content as salted commitments, and opt-in command retention.
+---
+
+Euthyne needs enough metadata to answer who did what, where and when. It does not need the content of your work. By default, content never leaves your machine.
+
+## Metadata, in clear
+
+- Harness and model
+- Forge account ID of the human
+- Repository and branch
+- Tool name and outcome
+- File paths
+- Git commit and blob SHAs
+- Timestamps
+- Commitments (salted hashes of the content)
+
+An organization can choose to hash file paths too.
+
+## Content, as salted commitments
+
+Prompts, tool inputs and outputs, commands, file contents and diffs stay on your machine. The receipt holds only a salted hash of each, called a commitment.
+
+A commitment hides the value, even a short or guessable one like `ls`, because each salt is secret and unique. Later, you can reveal one value to an auditor with [`euthyne reveal`](/docs/cli/reveal). The auditor recomputes the hash and checks it matches. Revealing one value opens nothing else. See [Commitments](/docs/spec/commitments).
+
+## Never leaves your machine
+
+- Prompts, tool inputs and outputs, file contents, diffs and transcripts
+- Commands, unless your organization opts in (see below)
+- The commitment key that derives the salts
+- Private keys
+
+Keys live in your OS keychain. On headless Linux without a secret service, they fall back to a file only you can read, and receipts made with it say so.
+
+## Opt-in command retention
+
+An organization can choose to keep commands and tool arguments. They are redacted on the device before signing, and Euthyne stores them encrypted at rest. Prompts and file contents always stay hashes, even with this option on.
+
+## The public log
+
+The log holds a hash of each receipt and nothing else. It carries no organization ID. Anyone can read it, and all it shows is how many entries there are.
+
+## Verify links and erasure
+
+- Verify links use a random ID, so receipts cannot be listed by guessing. A verify page is visible only to people who have the link, unless the repository is set to public.
+- Your login and email are personal data. They can be erased. Erasure removes the stored receipts and personal fields. The log keeps only a hash that no longer links to you.

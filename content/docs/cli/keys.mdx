@@ -1,0 +1,14 @@
+---
+title: euthyne keys
+description: Manage the device key.
+---
+
+<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+
+```bash
+euthyne keys rotate
+```
+
+`rotate` creates a new device key. The old key signs the new one, a key event is written to the log, and Euthyne issues a new credential for the new key.
+
+Revoking a key is done from the dashboard. Revocation is logged at a given log index. Later receipts signed with that key are rejected and fail verification. Earlier receipts stay valid, with a note.

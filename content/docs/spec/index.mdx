@@ -1,0 +1,55 @@
+---
+title: Overview
+description: Draft. How to verify Euthyne receipts without trusting Euthyne.
+---
+
+<Callout title="Draft">
+  This spec is a draft. Field names, encodings and formats may change before the first release.
+  Nothing here is stable yet.
+</Callout>
+
+This spec describes Euthyne receipts and how to check them. The goal is a spec complete enough for anyone to write an independent verifier.
+
+## Why a spec
+
+A verdict computed by Euthyne's server would prove nothing about Euthyne's server. So the checks run on your side: in your browser on the verify page, or on your machine with `euthyne verify`. The server only serves the raw artifacts.
+
+The verify page's code still comes from Euthyne. The fully independent path is `euthyne verify`, or your own verifier built from this spec.
+
+## Building blocks
+
+| Part | Format |
+| --- | --- |
+| Envelope | [DSSE](https://github.com/secure-systems-lab/dsse/blob/master/protocol.md), payload type `application/vnd.in-toto+json` |
+| Statement | [in-toto Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md) |
+| Signatures | Ed25519 |
+| Hashes | SHA-256 |
+| Commitments | HMAC-SHA256 salts, SHA-256 commitments |
+| Log | Append-only Merkle tree log, served as [C2SP tlog-tiles](https://github.com/C2SP/C2SP/blob/main/tlog-tiles.md), with signed checkpoints |
+| Timestamps | [OpenTimestamps](https://opentimestamps.org) proofs anchored in Bitcoin |
+| Device credentials | W3C Verifiable Credentials 2.0, as `vc+jwt` |
+| Euthyne's identity | A [did:webvh](https://identity.foundation/didwebvh/) DID log: `did:webvh:<SCID>:euthyne.com` |
+
+## What you trust
+
+- SHA-256, HMAC-SHA256 and Ed25519.
+- Euthyne's keys as published in its DID log. The CLI pins them.
+- Bitcoin block headers from a source you choose.
+
+You do not need to trust a verdict from Euthyne's servers.
+
+## Contents
+
+<Cards>
+  <Card title="Action receipt" href="/docs/spec/action-receipt" description="The envelope, the statement and every predicate field." />
+  <Card title="Commitments" href="/docs/spec/commitments" description="How content is salted and hashed, and how to check a reveal." />
+  <Card title="The four checks" href="/docs/spec/checks" description="What each check proves and what it does not." />
+  <Card title="Offline verification" href="/docs/spec/offline-verification" description="Running the checks with euthyne verify." />
+</Cards>
+
+## Not specified yet
+
+- The full field list of the change receipt predicate.
+- The receipt bundle format.
+- The session certificate format.
+- Test vectors.

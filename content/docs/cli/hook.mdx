@@ -1,0 +1,23 @@
+---
+title: euthyne hook
+description: Called by the agent harness to sign a receipt.
+---
+
+<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+
+```bash
+euthyne hook codex
+```
+
+You do not run this yourself. [`init`](/docs/cli/init) registers it with Claude Code and Codex, and the harness calls it on each hook event.
+
+On each call it:
+
+1. Reads the hook event.
+2. Computes the content commitments.
+3. Signs a receipt with the session key.
+4. Writes it to the local queue and exits.
+
+It never touches the network, so it does not slow the agent down waiting on a server. If no upload is running, it starts [`sync`](/docs/cli/sync) in the background.
+
+The hook command line stays the same across upgrades. Codex pins a trusted hook to a hash of its definition, so a changed command would need your trust again.

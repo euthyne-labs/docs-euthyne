@@ -1,0 +1,48 @@
+---
+title: Detected signals
+description: Agent markers found in commit metadata. Unsigned, and never proof.
+---
+
+Many agents leave a marker in the commits they make, such as a co-author trailer or a bot author. Euthyne reads these markers from the forge and shows them as detected signals.
+
+Detected signals are unsigned. They are never proof.
+
+## Where they come from
+
+When the GitHub App is installed, Euthyne reads recent merged pull requests and their commits, and looks for known markers. After that, it checks every new merge the same way.
+
+This gives a first picture before anyone installs the CLI. It also produces the strongest flag Euthyne has: a merge that carries an agent marker but has no receipts.
+
+Euthyne stores the parsed marker, never the commit message.
+
+## Why they are not proof
+
+- A marker can be removed, edited or typed by hand.
+- No marker means nothing. Some tools add none by default, and most local markers can be turned off.
+
+So Euthyne may say: "12 merged pull requests carry an agent marker in their commit metadata. Detected, not signed."
+
+It never says that those pull requests were written by agents, gives a share of AI-written code, or implies that unmarked work is human.
+
+## How they are shown
+
+- A grey **Detected** label, never the seal.
+- They never count toward coverage, any [trust level](/docs/concepts/trust-levels) or Full proof.
+- Change receipts list them as observed markers.
+
+## Known markers
+
+Euthyne matches trailers without regard to case, and matches author name and email, not the forge login.
+
+| Agent | Marker |
+| --- | --- |
+| Claude Code | `Co-Authored-By: <model> <noreply@anthropic.com>` trailer |
+| Claude Code GitHub Action | Commits by `claude[bot]` |
+| GitHub Copilot coding agent | Commits by `copilot-swe-agent[bot]`, `Agent-Logs-Url:` trailer |
+| GitHub Copilot CLI and VS Code | `Co-authored-by: Copilot` trailer |
+| Codex CLI | `Co-authored-by: Codex <noreply@openai.com>` trailer |
+| Codex cloud | Commits by `Codex <codex@openai.com>` (observed) |
+| Cursor | Pull requests by `cursor[bot]`, `Co-authored-by: Cursor` trailer |
+| Aider, Jules, Devin, Amp | Co-author trailers or bot authors |
+
+Tools change their markers. This list reflects what we checked in October 2026.

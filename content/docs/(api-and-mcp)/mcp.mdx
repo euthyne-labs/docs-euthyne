@@ -1,0 +1,35 @@
+---
+title: MCP
+description: Ask your agent who changed what, through a read-only MCP server.
+---
+
+<Callout title="Coming soon">
+  `euthyne mcp` is not released yet. This page describes the planned server.
+</Callout>
+
+`euthyne mcp` runs an MCP server over stdio. It lets an agent answer questions like "which agent changed `src/app/page.tsx`, and who approved it?" from your Euthyne data.
+
+Every tool is read-only and marked with `readOnlyHint`. Capture never goes through MCP. It stays in hooks.
+
+## Setup
+
+Create an API key with the `read` scope in the dashboard. Then add the server to Claude Code:
+
+```bash
+claude mcp add euthyne -- euthyne mcp
+```
+
+The server reads the key from your OS keychain, or from the `EUTHYNE_API_KEY` environment variable.
+
+## Tools
+
+| Tool | Input | Output |
+| --- | --- | --- |
+| `who_changed` | `{repo?, path, since?}` | `[{change_id, pr, merged_at, agents, models, launched_by, approved_by, assurance}]` |
+| `get_change` | `{pr_url}` or `{change_id}` | Sessions, approvals, coverage, verify link |
+| `get_receipt` | `{receipt_id}` | Summary and envelope |
+| `list_sessions` | `{repo?, human?, from?, to?}` | Harness, model, action count |
+| `coverage` | `{repo?, from, to}` | `{merged, covered, partial, none, self_approved, exceptions[]}` |
+| `verify` | `{receipt_id}`, `{change_id}` or `{pr_url}` | `{verdict, checks[]}` |
+
+`verify` runs the checks on your machine. It never takes a verdict from the server. See [the four checks](/docs/spec/checks).

@@ -1,0 +1,109 @@
+---
+title: Action receipt
+description: Draft. The DSSE envelope, the in-toto Statement and the predicate fields.
+---
+
+An action receipt is a [DSSE](https://github.com/secure-systems-lab/dsse/blob/master/protocol.md) envelope. Its payload is an [in-toto Statement v1](https://github.com/in-toto/attestation/blob/main/spec/v1/statement.md).
+
+## Envelope
+
+```json
+{
+  "payloadType": "application/vnd.in-toto+json",
+  "payload": "<base64 of the Statement bytes>",
+  "signatures": [
+    { "keyid": "<session key ID>", "sig": "<base64 Ed25519 signature>" }
+  ]
+}
+```
+
+The signature covers the DSSE pre-authentication encoding (PAE) of the payload type and the raw payload bytes:
+
+```text
+PAE(type, body) = "DSSEv1" SP LEN(type) SP type SP LEN(body) SP body
+```
+
+`SP` is one space and `LEN` is the length in bytes as ASCII decimal. The signature covers bytes, so there is no JSON canonicalization step.
+
+## Statement
+
+```json
+{
+  "_type": "https://in-toto.io/Statement/v1",
+  "subject": [
+    { "name": "tool_input", "digest": { "sha256": "<commitment>" } }
+  ],
+  "predicateType": "https://euthyne.com/attestation/action/v1",
+  "predicate": { }
+}
+```
+
+`subject` lists the content commitments, one entry per committed field. The `name` is the field, for example `tool_input`. The digest is the commitment, not a plain hash of the value. See [Commitments](/docs/spec/commitments).
+
+## Predicate
+
+Everything in the predicate is in clear.
+
+| Field | Content |
+| --- | --- |
+| `id` | Receipt ID, with the `rcpt_` prefix |
+| `t` | Device time, in milliseconds since the Unix epoch |
+| `org` | Organization ID |
+| `device` | Fingerprint of the device key |
+| `human` | Forge account of the human, for example `github:12345` |
+| `harness` | Harness name and version |
+| `model` | Model ID, with `source`: `hook`, `transcript` or `unknown` |
+| `session` | `id`, `seq`, and `prev`, the digest of the previous receipt in the session |
+| `event` | Hook event name, for example `PostToolUse` |
+| `tool` | Tool name, `use_id`, outcome (`ok`, `error` or `denied`) and duration |
+| `repo` | Remote, branch and `HEAD` |
+| `files` | Paths, each with its git blob SHA after the action |
+| `commit` | The new commit SHA, after a `git commit` |
+| `salt_key` | ID and epoch of the commitment key used for the salts |
+
+The nested structure of each field is not final.
+
+## Receipt digest
+
+The digest of a receipt is the SHA-256 of its envelope. It is the value used in `prev`, in the log leaf and in change receipts.
+
+## Hook events
+
+These Claude Code hook events produce receipts or receipt data:
+
+| Event | Recorded |
+| --- | --- |
+| `SessionStart` | Session open, repository, `HEAD`, model if present |
+| `UserPromptSubmit` | Prompt commitment |
+| `PostToolUse` | The action receipt |
+| `PostToolUseFailure`, `PermissionDenied` | Outcome `error` or `denied` |
+| `SubagentStart`, `SubagentStop` | Subagent attribution |
+| `PostModelSwitch` | Model change |
+| `Stop` | Turn end: `HEAD` and blob SHAs of touched files |
+| `SessionEnd` | Local queue write only |
+
+Codex uses the same event names. Its tool hooks cover shell commands, `apply_patch`, MCP tools and local function tools. They do not cover tools hosted by the provider, such as web search.
+
+## Keys
+
+- **Device key.** Ed25519, one per device per organization, kept in the OS keychain. A W3C Verifiable Credential 2.0 (`vc+jwt`), issued by Euthyne, binds it to a human and an organization.
+- **Session key.** Certified by the device key when a session starts, valid for 24 hours at most. It signs the receipts of that session.
+- **Key events.** Binding, rotating and revoking a device key are log entries too. So "revoked at log index N" can be proven.
+
+## Log leaf
+
+```text
+leaf = type_byte || SHA-256(envelope)
+```
+
+The leaf holds no organization ID. The type byte values are not final.
+
+## Change receipt
+
+A change receipt uses the same envelope and Statement format. Euthyne signs it with its service key.
+
+- `subject`: `{ "digest": { "gitCommit": "<final SHA>" } }`
+- `predicateType`: `https://euthyne.com/attestation/change/v1`
+- Predicate: repository, pull request number, head and final SHA, merge method, author, merged by, merged at; `sessions[]` with link method and the Merkle root of their receipt digests; `approvals[]` with the reviewed SHA and the author and launcher checks; CI; `coverage`; observed `agent_markers`.
+
+The full field list is not specified yet.

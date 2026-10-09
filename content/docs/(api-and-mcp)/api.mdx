@@ -1,0 +1,18 @@
+---
+title: API
+description: The API reference lands here.
+---
+
+<Callout title="Coming soon">
+  The API is not released yet. Its OpenAPI reference will be published on this page.
+</Callout>
+
+The CLI, the dashboard and the MCP server all use the same public API. Once it is released, you can call it with an API key too.
+
+What is planned:
+
+- JSON over HTTPS, versioned under `/v1`, with cursor pagination.
+- API keys with the `eut_` prefix, shown once when created. Each key has scopes: `read`, `export` or `admin`.
+- Keys are bound to one organization, can expire, and can be revoked. Their last use is visible.
+- Public verification artifacts, such as a receipt's envelope and proofs, need no key.
+- Rate limits answer `429` with a `Retry-After` header.

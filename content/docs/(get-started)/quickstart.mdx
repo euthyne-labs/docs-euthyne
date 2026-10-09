@@ -1,17 +1,76 @@
 ---
-title: Components
-description: Components
+title: Quickstart
+description: Install the CLI, set up a repository and create your first receipt.
 ---
 
-## Code Block
+import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-```js
-console.log('Hello World');
+<Callout title="Coming soon">
+  The CLI is not released yet. The commands below show the planned flow. They do not work today.
+</Callout>
+
+You need a GitHub account and Claude Code or Codex.
+
+<Steps>
+<Step>
+
+### Install the CLI
+
+```bash
+brew install euthyne-labs/tap/euthyne
 ```
 
-## Cards
+An install script for systems without Homebrew is also planned.
 
-<Cards>
-  <Card title="Learn more about Next.js" href="https://nextjs.org/docs" />
-  <Card title="Learn more about Fumadocs" href="https://fumadocs.dev" />
-</Cards>
+</Step>
+<Step>
+
+### Set up a repository
+
+```bash
+cd your-repo
+euthyne init
+```
+
+`init` does the whole first run:
+
+- It signs you in with GitHub through a device code, if you are not signed in yet.
+- It detects Claude Code and Codex.
+- It creates a device key in your OS keychain. Your OS may ask you to allow this.
+- It installs the hooks for this repository only.
+- It signs a test receipt and prints its ID with a link to the dashboard.
+
+Codex runs a hook only after you trust it. `init` ends by asking you to open `/hooks` in Codex and trust the Euthyne hook.
+
+To share the hook setup with your team, run `euthyne init --shared` and commit the file it writes. Teammates who do not have the CLI are not blocked by it.
+
+</Step>
+<Step>
+
+### Work as usual
+
+Use Claude Code or Codex as you normally do. Each tool call creates a receipt on your machine. The CLI uploads receipts in the background, and keeps them on disk while you are offline.
+
+```bash
+euthyne status
+```
+
+`status` shows how many receipts are still waiting to upload.
+
+</Step>
+<Step>
+
+### Check your latest receipt
+
+```bash
+euthyne verify --last
+```
+
+A new receipt is signed at once and recorded in the log within seconds. The independent timestamp follows a few hours later. Until then the receipt shows as **Witnessed, timestamp pending**. See [Trust levels](/docs/concepts/trust-levels).
+
+</Step>
+</Steps>
+
+## Change receipts
+
+Receipts for merged pull requests need the Euthyne GitHub App on your GitHub organization. An organization owner installs it. See [Changes](/docs/concepts/changes).

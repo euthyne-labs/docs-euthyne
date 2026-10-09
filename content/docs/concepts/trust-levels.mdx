@@ -1,0 +1,40 @@
+---
+title: Trust levels
+description: Signed, Witnessed and Full proof, and what each one means.
+---
+
+Every receipt has a trust level. It is a property of the receipt, reached step by step as proofs arrive.
+
+| Level | Reached when | When |
+| --- | --- | --- |
+| Signed | The signature is valid, the key is bound to a human and an organization, and the key was not revoked at that point in the log | At hook time |
+| Witnessed | The receipt's digest is included under a signed log checkpoint | Within seconds of upload |
+| Full proof | Changes only. Witnessed, coverage is `covered`, and someone who is neither the author nor the launching human approved the final head | After merge and the timestamp |
+
+## Signed
+
+A key that belongs to a known device, bound to a known human and organization, signed this exact receipt. Nothing in it changed after signing.
+
+Signed alone does not show when the receipt was made. The time inside comes from the device clock.
+
+## Witnessed
+
+The receipt is in Euthyne's append-only public log. From then on, removing or changing it would be detectable.
+
+A receipt shows **Witnessed, timestamp pending** as soon as it is logged. A few hours later, the log checkpoint is anchored in Bitcoin through OpenTimestamps, and the timestamp is no longer pending. The anchor proves the receipt existed before a given Bitcoin block, without relying on Euthyne.
+
+## Full proof
+
+Full proof applies to changes, not single actions. It means:
+
+- the change receipt is Witnessed,
+- every commit is accounted for by a linked session (coverage `covered`),
+- and an approval on the final head came from someone other than the author and the launching human.
+
+Full proof does not mean the code is good. It means the record is complete by Euthyne's rules, and someone else signed off on the forge.
+
+## What never counts
+
+[Detected signals](/docs/concepts/detected-signals) never count toward any level. They are unsigned.
+
+For the exact checks behind each level, see [the four checks](/docs/spec/checks).

@@ -1,0 +1,29 @@
+---
+title: euthyne init
+description: Set up Euthyne in a repository.
+---
+
+<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+
+```bash
+euthyne init
+```
+
+Run it inside a repository. It does the whole first run:
+
+1. Signs you in with a device code, if needed. See [`login`](/docs/cli/login).
+2. Detects Claude Code and Codex.
+3. Creates a device key in your OS keychain, bound to you and your organization.
+4. Installs hooks for this repository only.
+5. Signs a test receipt and prints its ID and a link to the dashboard.
+
+For Codex, it ends by asking you to trust the hook in `/hooks`. Codex does not run hooks you have not trusted.
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--yes` | Accepts the defaults without prompts |
+| `--shared` | Writes the hook setup to a file you commit, so the team shares it. Teammates without the CLI are not blocked |
+
+By default, Claude Code hooks go in `.claude/settings.local.json`, which stays on your machine. With `--shared`, they go in `.claude/settings.json`.

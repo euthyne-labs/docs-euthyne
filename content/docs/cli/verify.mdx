@@ -1,0 +1,23 @@
+---
+title: euthyne verify
+description: Verify receipts on your machine.
+---
+
+<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+
+```bash
+euthyne verify receipt.json --offline
+euthyne verify --last
+```
+
+Runs [the four checks](/docs/spec/checks) locally. It never asks Euthyne's servers for a verdict.
+
+| Flag | Effect |
+| --- | --- |
+| `--last` | Verifies your most recent receipt |
+| `--offline` | Runs only the steps that need no network |
+| `--btc-node <url>` | Checks the Bitcoin block header against your own node |
+
+Exits with `0` when the checks pass and `1` when one fails.
+
+See [Offline verification](/docs/spec/offline-verification) for what runs offline.
