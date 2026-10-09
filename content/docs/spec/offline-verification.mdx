@@ -19,7 +19,7 @@ euthyne verify --last
 - A file path verifies a saved receipt bundle.
 - `--last` verifies your most recent receipt.
 - `--offline` runs only the steps that need no network.
-- `--btc-node <url>` checks the anchor against your own node.
+- `--anchor-node <url>` checks the anchor against your own node.
 
 The command exits with `0` when the checks pass and `1` when one fails.
 
@@ -32,7 +32,7 @@ The command exits with `0` when the checks pass and `1` when one fails.
 | Session chain | Yes |
 | Inclusion | Yes, from the proof in the bundle |
 | Consistency | No, it needs the latest checkpoint from an independent copy of the log |
-| Anchor | Only with `--btc-node`. Otherwise reported as "header not checked" |
+| Anchor | Only with `--anchor-node`. Otherwise reported as "header not checked" |
 | Coverage | Yes |
 
 ## The receipt bundle
