@@ -1,0 +1,48 @@
+---
+title: euthyne mandate show
+description: Print the mandates captured for a session.
+---
+
+<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
+
+```bash
+euthyne mandate show
+euthyne mandate show --session <session-id>
+```
+
+Prints every version of a session's [mandate](/docs/concepts/mandates): the Claude Code permission config in force, signed by the session key. By default it shows the session with the newest mandate on this machine.
+
+It reads from this machine only. Agents never call it, and nothing it prints reaches an agent.
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--session <id>` | The Claude Code session ID to show |
+| `--json` | Prints each version with its signed credential, digest and log index |
+
+## Output
+
+```text
+Session 5f2c… · org acme
+✓ v1 3f9a0c1b2d4e mode default (ask) · 09:14:02 logged at index 790
+✓ v2 81be77d0a9c3 mode acceptEdits (accept_edits) · 09:31:40 not uploaded yet
+
+In force: v2 urn:euthyne:mandate:mdt_01K7…, valid until 2026-10-13T09:14:02Z
+  allow (2)
+        Bash(npm run test:*)
+        Read(./src/**)
+  ask   (1)
+        Bash(git push:*)
+  deny  (1)
+        Read(./.env)
+  mcp   github (stdio, project)
+  dirs  .
+  sandbox off · spend reserved, empty
+```
+
+Each version line shows the short digest, the permission mode as Claude Code names it and its normalized form, the time it was signed, and whether it is in the log yet. A version the server rejected is marked with `✗` and the reason.
+
+## Planned
+
+- `mandate diff <a> <b>`, to compare two versions.

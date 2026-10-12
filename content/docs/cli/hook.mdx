@@ -1,23 +1,44 @@
 ---
 title: euthyne hook
-description: Called by the agent harness to sign a receipt.
+description: Called by Claude Code to sign a receipt for one hook event.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Built for Claude Code, not publicly released yet.</Callout>
 
 ```bash
-euthyne hook codex
+euthyne hook claude-code
 ```
 
-You do not run this yourself. [`init`](/docs/cli/init) registers it with Claude Code and Codex, and the harness calls it on each hook event.
+You do not run this yourself. [`init`](/docs/cli/init) registers it in `.claude/settings.local.json`, and Claude Code calls it on each hook event.
 
 On each call it:
 
-1. Reads the hook event.
-2. Computes the content commitments.
-3. Signs a receipt with the session key.
-4. Writes it to the local queue and exits.
+1. Reads the hook event JSON on stdin.
+2. Commits the whole payload, and each content field, as salted hashes.
+3. Captures the session's [mandate](/docs/concepts/mandates) if it is the first event of the session, or signs a new version if the permission mode or a settings file changed.
+4. Checks the action against the mandate in force: in, out or unknown.
+5. Signs an action receipt with the session key.
+6. Appends it to the local queue and exits.
 
-It never touches the network, so it does not slow the agent down waiting on a server. If no upload is running, it starts [`sync`](/docs/cli/sync) in the background.
+It never touches the network. Receipts wait in the queue until you run [`sync`](/docs/cli/sync).
 
-The hook command line stays the same across upgrades. Codex pins a trusted hook to a hash of its definition, so a changed command would need your trust again.
+If telemetry is set up, the hook also starts the local OpenTelemetry receiver when it is not running. It never waits for it.
+
+## When it records nothing
+
+Without an enrolled device, or without your accepted consent for this organization, it exits at once and records nothing. An admin who installs the hooks for you cannot turn recording on. Only you can, with `init`.
+
+## It never steers the agent
+
+The hook writes nothing to stdout, so nothing reaches the agent's context. It does not use `PreToolUse`, so it can never block a tool call. The agent is never told its mandate.
+
+## Harnesses
+
+| Harness | Command | Status |
+| --- | --- | --- |
+| Claude Code | `euthyne hook claude-code` | Built |
+| Codex | `euthyne hook codex` | Planned |
+| GitHub Copilot CLI | `euthyne hook copilot` | Planned |
+| Cursor | `euthyne hook cursor` | Planned |
+
+Any other harness name is rejected. The command line stays the same across upgrades.

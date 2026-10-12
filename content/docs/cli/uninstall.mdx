@@ -1,0 +1,33 @@
+---
+title: euthyne uninstall
+description: Remove exactly what init wrote.
+---
+
+<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
+
+```bash
+euthyne uninstall
+euthyne uninstall --all
+```
+
+Run it inside the repository, or anywhere with `--all`. It lists what it will remove and asks you to type `yes`.
+
+## What it removes
+
+- The Euthyne hooks in this repository's `.claude/settings.local.json`. Your other hooks and settings stay.
+- The `.git/info/exclude` line `init` added.
+- This repository from the list of enrolled ones, so its sessions are no longer recorded.
+
+When no enrolled repository is left, it also removes the telemetry lines `init` added to your user settings, and deletes the copies of that file it kept. Every other line stays as it was. A line you changed since `init` is left in place, with a warning.
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--all` | Every enrolled repository and the telemetry lines. Also withdraws your recording consent on this device |
+| `--yes` | Removes without asking |
+
+## What stays
+
+- Receipts already signed stay valid and verifiable.
+- Your device key, the state directory and any receipts still in the queue stay on your machine. Run [`sync`](/docs/cli/sync) to upload what is queued.

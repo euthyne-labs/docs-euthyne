@@ -1,19 +1,51 @@
 ---
 title: euthyne sync
-description: Upload queued receipts.
+description: Upload queued mandates and receipts, and save their log proofs.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
 
 ```bash
 euthyne sync
 ```
 
-Uploads receipts from the local queue. [`hook`](/docs/cli/hook) starts it in the background, so you rarely run it by hand.
+Uploads everything the hooks queued on this machine. Run it by hand for now. Uploading in the background is planned.
 
-- Receipts are uploaded in batches.
-- On failure, it retries with backoff, from 1 second up to 5 minutes.
-- A receipt counts as sent once the server returns its digest and log index.
-- Sent receipts stay on disk for 7 days, then are pruned.
+## What it does
 
-The queue lives under `~/.local/share/euthyne/spool/` and survives restarts.
+1. Checks that the server signs its log with the key this CLI trusts. If not, it refuses to sync.
+2. Uploads the session [mandates](/docs/concepts/mandates) first, then the receipts that cite them, in batches. Each mandate gets a lower log index than every receipt that cites it.
+3. Checks each new log checkpoint against the ones this machine has seen before. A checkpoint that rewrites history stops the sync with a "log fork" or "log rollback" error.
+4. Waits for the checkpoints that cover the new receipts, fetches each receipt's inclusion proof, and saves a verified receipt bundle under `<home>/bundles/`. [`verify`](/docs/cli/verify) reads these bundles.
+
+Receipts the server rejects move to `<home>/rejected/` with the reason, and are never retried.
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--server <url>` | API base URL. Also `EUTHYNE_SERVER`. Defaults to the server this device enrolled with |
+| `--wait <duration>` | How long to wait for checkpoints that cover new receipts. Default `30s` |
+
+## Output
+
+```text
+✓ Logged 1 mandate before the receipts citing it
+✓ Uploaded 14 receipts to <server>
+✓ rcpt_01K7… witnessed at index 812 <home>/bundles/rcpt_01K7….json
+! 2 receipts waiting for a checkpoint, run euthyne sync again
+```
+
+If the device clock is more than 5 minutes off the server, it warns for each affected receipt.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Done, or nothing to sync |
+| `1` | Some receipts were rejected, or the sync failed |
+
+## Planned
+
+- Uploads started in the background by the hook, with retries and backoff.
+- Pruning of sent receipts after a few days.

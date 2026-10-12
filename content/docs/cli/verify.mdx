@@ -1,23 +1,85 @@
 ---
 title: euthyne verify
-description: Verify receipts on your machine.
+description: Check a receipt bundle offline.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
 
 ```bash
-euthyne verify receipt.json --offline
+euthyne verify <receipt-file>
 euthyne verify --last
 ```
 
-Runs [the four checks](/docs/spec/checks) locally. It never asks Euthyne's servers for a verdict.
+Checks a receipt bundle on your machine, without the network. It never asks Euthyne's servers for a verdict.
+
+A bundle is the receipt plus its log proof, and the proof of the mandate it cites. [`sync`](/docs/cli/sync) saves one per receipt under `<home>/bundles/`.
+
+## Flags
 
 | Flag | Effect |
 | --- | --- |
-| `--last` | Verifies your most recent receipt |
-| `--offline` | Runs only the steps that need no network |
-| `--anchor-node <url>` | Checks the anchor against your own node |
+| `--last` | Verifies the most recent bundle synced on this machine |
+| `--json` | Prints the verdict as JSON |
 
-Exits with `0` when the checks pass and `1` when one fails.
+Pass either a file or `--last`, not both.
 
-See [Offline verification](/docs/spec/offline-verification) for what runs offline.
+## The checks
+
+| Check | Passes when |
+| --- | --- |
+| Format | The bundle parses in its canonical form |
+| Statement | The payload is an in-toto Statement v1 with the action receipt predicate |
+| Session key | The device key certified the session key, for this session, org and human, and the receipt's time is inside the key's validity |
+| Signature | The session key signed the receipt |
+| Log inclusion | The receipt is in the log under a checkpoint signed by the trusted log key |
+| Consistency | That checkpoint matches the one this machine saw at the same size. When this machine never saw that size, it is reported as not checked offline, and the verdict is not affected |
+
+The trusted log key is built into the binary. `--log-key` or `EUTHYNE_LOG_KEY` overrides it, with a warning.
+
+## The mandate row
+
+When the receipt cites a [mandate](/docs/concepts/mandates), a separate row checks it:
+
+- the mandate's signature verifies, and it was issued by this session's key,
+- its digest, ID and version are the ones the receipt cites,
+- its session, org, human and device match the receipt,
+- the receipt's time is within the mandate's validity,
+- the mandate is in the log at a lower index than the receipt.
+
+If the last point fails, the row says "This mandate was recorded after the action". A failing mandate row is reported on its own line and does not change the receipt's verdict. The check result itself (in, out or unknown) is shown, never judged.
+
+## Output
+
+```text
+✓ Genuine rcpt_01K7…
+  PostToolUse · Bash · claude-code · model claude-opus-5-5 · git@github.com:acme/app.git
+  org acme · human github:1234567 · 2026-10-12 09:20:11 UTC
+  check in · rule Bash(npm run test:*) · from rule_match · mode default · mandate v1 3f9a0c1b2d4e
+  tokens 1200 in · 340 out · 0 cache read · 0 cache write · $0.0123 · 1 requests · 2.1 s API
+
+✓ Format         canonical receipt bundle
+✓ Statement      in-toto Statement v1, https://euthyne.com/attestation/action/v1
+✓ Session key    certified by device sha256:…, valid until 2026-10-13T09:14:02Z
+✓ Signature      signed by session key sha256:…
+✓ Log inclusion  entry 812 of 815 in …, checkpoint signed by the log key
+✓ Consistency    checkpoint of size 815 matches the one seen before
+✓ Mandate        v1 logged at index 790 before the receipt at 812, signed by the session key
+```
+
+A receipt that fails prints `✗ Tampered: this receipt does not match its signature or its log entry`, with the failing check marked.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Genuine |
+| `1` | Tampered: a check failed |
+| `2` | Could not check: no file, no synced bundle yet, no trusted log key, or wrong arguments |
+
+## Planned
+
+- Checking the independent timestamp, against your own node or public sources.
+- Verifying from a share link or a pull request URL.
+- The session chain and key revocation checks.
+
+See [Offline verification](/docs/spec/offline-verification) for the draft spec.

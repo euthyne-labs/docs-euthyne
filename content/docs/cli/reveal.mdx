@@ -1,16 +1,55 @@
 ---
 title: euthyne reveal
-description: Reveal one committed field to an auditor.
+description: Open one committed field of a receipt for an auditor.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
 
 ```bash
-euthyne reveal <receipt> <field>
+echo '{"command":"npm test"}' | euthyne reveal <receipt-file> tool_input --value-from-stdin
 ```
 
-Prints the salt and the value for one field of one receipt, for example `tool_input`. The auditor recomputes the commitment and checks it matches the receipt.
+You give the value you claim a field held, as JSON on stdin. The CLI derives that field's salt, checks the value against the receipt's commitment, and prints the receipt ID, the field, the salt and the value. An auditor recomputes the commitment and checks it matches.
 
-Revealing one field opens nothing else. It only works on the device that holds the commitment key, or with your organization's own copy of that key.
+The receipt file is a bundle saved by [`sync`](/docs/cli/sync), under `<home>/bundles/`. The value is compared in canonical JSON form, so spacing and key order do not matter.
+
+Revealing one field opens nothing else.
+
+## Fields
+
+Each receipt lists its committed fields in its `subject`. Depending on the event, they are:
+
+| Field | Content |
+| --- | --- |
+| `hook_payload` | The whole hook event, as Claude Code sent it |
+| `prompt` | Your prompt |
+| `tool_input`, `tool_response` | What the tool was given and what it returned |
+| `error` | The error of a failed tool call |
+| `web_url`, `web_query` | The full URL of a web fetch, or the query of a web search |
+| `reason`, `last_assistant_message` | Other content fields of some events |
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--value-from-stdin` | Reads the claimed value as JSON from stdin. Required for now |
+| `--json` | Prints `{receipt, field, salt, value}` as JSON |
+
+## Where it works
+
+Only on the device that signed the receipt. The salt comes from the device's commitment key, which never leaves its keychain. On another machine, `reveal` says the receipt was signed by another device.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | The value opens the commitment |
+| `1` | The value does not open the commitment, or the receipt does not verify |
+| `2` | Could not check: no such field, another device, or no `--value-from-stdin` |
 
 See [Commitments](/docs/spec/commitments).
+
+## Planned
+
+- Reading the value from Claude Code's local transcript, so you do not paste it.
+- Revealing from your organization's own copy of the commitment key.

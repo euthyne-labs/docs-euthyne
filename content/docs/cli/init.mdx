@@ -1,29 +1,125 @@
 ---
 title: euthyne init
-description: Set up Euthyne in a repository.
+description: Accept recording, enrol this machine and install the hooks in a repository.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
 
 ```bash
+# first run on a machine
+EUTHYNE_ENROL_TOKEN="$(cat enrol-token.txt)" euthyne init --server <server-url>
+
+# every further repository on the same machine
 euthyne init
 ```
 
-Run it inside a repository. It does the whole first run:
+Run it inside a git repository. Outside one, it stops with an error.
 
-1. Signs you in with a device code, if needed. See [`login`](/docs/cli/login).
-2. Detects Claude Code and Codex.
-3. Creates a device key in your OS keychain, bound to you and your organization.
-4. Installs hooks for this repository only.
-5. Signs a test receipt and prints its ID and a link to the dashboard.
+## What it does
 
-For Codex, it ends by asking you to trust the hook in `/hooks`. Codex does not run hooks you have not trusted.
+1. Shows what Euthyne records and what it never records, then asks you to type `yes`. If you do not, it stops: nothing is installed and nothing is recorded.
+2. Creates this machine's device key in your OS keychain, or reuses the one it has.
+3. On the first run, enrols the device with Euthyne using a one-time enrolment token. Your acceptance (the consent text version and the time) is sent with the enrolment.
+4. Enrols the current repository.
+5. Installs the Claude Code hooks in `.claude/settings.local.json` and adds that file to `.git/info/exclude`, so it is never committed by accident.
+6. Asks a second question: may it add Claude Code telemetry lines to your user settings, for tokens and cost? See [Tokens and cost](#tokens-and-cost).
+7. Prints a summary and a preview of the [mandate](/docs/concepts/mandates) your sessions will record.
+
+Running `init` again in the same repository changes nothing that already exists. It does not add duplicate hooks.
+
+## The consent text
+
+This is what `init` prints before it asks. `<server>` is the server you enrol with.
+
+```text
+Euthyne records what Claude Code does in the repositories you enrol, so you can prove it later.
+
+Recorded on this machine, signed, and sent to <server>:
+  - harness, model, your forge user ID, repo remote, branch, commits, timestamps
+  - each tool call: tool name, MCP server and tool names, outcome, duration, file paths, git blob SHAs
+  - web research: the domain in clear; full URLs and search queries only as salted hashes
+  - the permission mode, your Claude Code permission rules (allow, ask, deny), MCP server names and
+    sandbox settings, and whether each action was inside them
+  - tokens, cost and API time, from Claude Code's telemetry
+
+Never sent, kept on this machine only as salted hashes or not at all:
+  - prompts, tool inputs and outputs, file contents, diffs, transcripts
+  - settings env blocks, API keys and key helpers, MCP server commands, URLs, headers and env
+  - every telemetry attribute other than tokens, cost, duration, model and session ids
+
+To read tokens and cost, init then asks to add Claude Code telemetry lines to your user settings
+(~/.claude/settings.json), exported only to an authenticated receiver on 127.0.0.1. Skip it with --no-otel.
+
+Consent text version 2026-10-12.
+```
+
+The acceptance is per organization and per text version. When the text changes, the next `init` asks again.
+
+## Tokens and cost
+
+Claude Code reports tokens and cost through OpenTelemetry, not through hooks. After the consent, `init` asks:
+
+```text
+Add usage telemetry to your user settings? This applies to all your Claude Code sessions. Euthyne only keeps usage for repos you enrolled.
+```
+
+If you type `yes`, it adds lines to the `env` block of your user settings (`~/.claude/settings.json`, or the one under `CLAUDE_CONFIG_DIR`):
+
+- `CLAUDE_CODE_ENABLE_TELEMETRY`, `OTEL_LOGS_EXPORTER` and `OTEL_METRICS_EXPORTER`, to turn the export on.
+- The OTLP protocol, endpoint and headers for logs and metrics, pointing at a receiver on `127.0.0.1` only, with a bearer secret unique to your install.
+- Two short export intervals.
+
+Before it writes, it saves a copy of your settings file, readable only by you. [`uninstall`](/docs/cli/uninstall) removes exactly these lines and deletes the copy.
+
+The receiver is `euthyne otel`. Hooks start it when needed. It keeps only tokens, cost, duration, model and session IDs, drops every other attribute, and exits 30 minutes after your last session. It only keeps usage for sessions in repositories you enrolled. The lines apply from the next time you start Claude Code.
+
+If your user settings already set an OpenTelemetry endpoint, protocol or headers, `init` leaves them as they are and records no tokens or cost. If the default port is taken by another program, it picks a free one.
 
 ## Flags
 
 | Flag | Effect |
 | --- | --- |
-| `--yes` | Accepts the defaults without prompts |
-| `--shared` | Writes the hook setup to a file you commit, so the team shares it. Teammates without the CLI are not blocked |
+| `--server <url>` | Euthyne API base URL. Also `EUTHYNE_SERVER`. Needed on the first run. Must use `https` |
+| `--token-stdin` | Reads the one-time enrolment token from the first line of stdin |
+| `--token <token>` | Passes the token as an argument. Avoid it: the token lands in your shell history and process list, and `init` warns you |
+| `--yes` | Accepts the recording terms and the telemetry question without a prompt. The terms are still printed, with a warning that they were accepted on your behalf |
+| `--no-otel` | Does not touch your user settings. No tokens or cost are recorded |
+| `--otel-port <port>` | Port of the local receiver on `127.0.0.1`. Default `47318` |
+| `--rotate-otel` | Replaces the receiver's bearer secret in your user settings |
 
-By default, Claude Code hooks go in `.claude/settings.local.json`, which stays on your machine. With `--shared`, they go in `.claude/settings.json`.
+The enrolment token can also come from the `EUTHYNE_ENROL_TOKEN` environment variable. That is the easiest way for an interactive first run.
+
+<Callout type="warn" title="--token-stdin and the prompts">
+  The prompts read from stdin too. If stdin is a file or a pipe that holds only the token, the consent prompt reads end of file and `init` stops without installing anything. Use `--token-stdin` together with `--yes`, or use `EUTHYNE_ENROL_TOKEN`.
+</Callout>
+
+Only use `--yes` when you are the person accepting. It records your consent, not someone else's.
+
+## Output
+
+```text
+✓ Device sha256:3f9a… enrolled with <server>
+✓ Previous user settings saved to … (0600, deleted by euthyne uninstall)
+✓ Recording accepted (terms 2026-10-12, 2026-10-12T09:14:02Z)
+✓ Enrolled /home/you/your-repo (git@github.com:acme/your-repo.git)
+✓ Receipts are signed for org acme, human github:1234567 (device key in keychain)
+✓ Claude Code hooks installed in /home/you/your-repo/.claude/settings.local.json (git-ignored)
+✓ Tokens and cost: Claude Code telemetry goes to 127.0.0.1:47318 (…, applies from the next claude start)
+Mandate preview: mode default · 12 allow · 2 ask · 3 deny · MCP github · sandbox off
+```
+
+## Hooks it installs
+
+One entry per event in `.claude/settings.local.json`, each running `euthyne hook claude-code`:
+
+`SessionStart`, `UserPromptSubmit`, `PostToolUse`, `PostToolUseFailure`, `PermissionDenied`, `SubagentStart`, `SubagentStop`, `Stop` and `SessionEnd`.
+
+Your other hooks and settings are kept as they are.
+
+## Planned
+
+- Sign-in with GitHub through a device code, instead of an enrolment token. See [`login`](/docs/cli/login).
+- A test receipt at the end of the first run.
+- Codex, GitHub Copilot CLI and Cursor hooks.
+- `--shared`, to write the hook setup to a file the team commits.
+- `--json`, for setup driven by a script.

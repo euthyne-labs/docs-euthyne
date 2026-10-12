@@ -1,16 +1,16 @@
 ---
 title: euthyne login
-description: Sign in from the terminal.
+description: Planned. Sign in from the terminal with a device code.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Planned">Not built yet. Today, a machine enrols through [`init`](/docs/cli/init) with a one-time enrolment token.</Callout>
 
 ```bash
 euthyne login
 ```
 
-Signs you in with the OAuth device flow (RFC 8628). The CLI shows a code and a link. You confirm the code in your browser with your GitHub account.
+It will sign you in with the OAuth device flow (RFC 8628). The CLI shows a code and a link. You confirm the code in your browser with your GitHub account and pick the organization.
 
-The device token is stored in your OS keychain. It can only upload receipts for your own device.
+The device token will be stored in your OS keychain. It can only upload receipts for your own device.
 
-[`init`](/docs/cli/init) runs `login` for you when needed.
+[`init`](/docs/cli/init) will run `login` for you when needed.
