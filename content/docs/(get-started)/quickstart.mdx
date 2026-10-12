@@ -1,26 +1,24 @@
 ---
 title: Quickstart
-description: Install the CLI, set up a repository and create your first receipt.
+description: Set up a repository, record a Claude Code session and verify a receipt.
 ---
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
-<Callout title="Coming soon">
-  The CLI is not released yet. The commands below show the planned flow. They do not work today.
+<Callout title="Preview">
+  The CLI is in testing with design partners and is not publicly released. You need a build and a one-time enrolment token from us. Commands and output may change.
 </Callout>
 
-You need a GitHub account and Claude Code or Codex.
+You need macOS or Linux, git, Claude Code, and a git repository to record.
 
 <Steps>
 <Step>
 
-### Install the CLI
+### Get the CLI and a token
 
-```bash
-brew install euthyne-labs/tap/euthyne
-```
+During the preview, we send you the `euthyne` binary, the server URL, and a one-time enrolment token. The token enrols one machine and expires after an hour by default. Save it to a file and keep it out of your shell history.
 
-An install script for systems without Homebrew is also planned.
+A Homebrew tap, an install script and sign-in with GitHub are planned.
 
 </Step>
 <Step>
@@ -29,48 +27,71 @@ An install script for systems without Homebrew is also planned.
 
 ```bash
 cd your-repo
-euthyne init
+EUTHYNE_ENROL_TOKEN="$(cat enrol-token.txt)" euthyne init --server <server-url>
 ```
 
-`init` does the whole first run:
+`init` first prints exactly what Euthyne records and what it never records, and asks you to type `yes`. Nothing is installed or recorded before you accept. See [the consent text](/docs/cli/init#the-consent-text).
 
-- It signs you in with GitHub through a device code, if you are not signed in yet.
-- It detects Claude Code and Codex.
-- It creates a device key in your OS keychain. Your OS may ask you to allow this.
-- It installs the hooks for this repository only.
-- It signs a test receipt and prints its ID with a link to the dashboard.
+Then it:
 
-Codex runs a hook only after you trust it. `init` ends by asking you to open `/hooks` in Codex and trust the Euthyne hook.
+- creates a device key in your OS keychain, and your OS may ask you to allow this,
+- enrols this machine with the token, binding the key to you and your organization,
+- installs the Claude Code hooks in `.claude/settings.local.json`, which stays out of git.
 
-To share the hook setup with your team, run `euthyne init --shared` and commit the file it writes. Teammates who do not have the CLI are not blocked by it.
+It asks one more question: may it add telemetry lines to your user-level Claude Code settings, so tokens and cost are recorded? They export only to a receiver on your machine. Type `yes`, or `no` to skip. You can also pass `--no-otel`. See [Tokens and cost](/docs/cli/init#tokens-and-cost).
+
+It ends with a preview of the permissions your sessions will record:
+
+```text
+Mandate preview: mode default · 12 allow · 2 ask · 3 deny · MCP github · sandbox off
+```
+
+To set up another repository on the same machine, run `euthyne init` there. No token needed.
 
 </Step>
 <Step>
 
 ### Work as usual
 
-Use Claude Code or Codex as you normally do. Each tool call creates a receipt on your machine. The CLI uploads receipts in the background, and keeps them on disk while you are offline.
+Start Claude Code in the repository and work as you normally do. Restart it if it was already open, so it picks up the hooks and the telemetry lines.
 
-```bash
-euthyne status
-```
-
-`status` shows how many receipts are still waiting to upload.
+Each hook event becomes a signed receipt in a local queue. The first one of each session is preceded by the session's [mandate](/docs/concepts/mandates). The agent sees none of it, and nothing is blocked.
 
 </Step>
 <Step>
 
-### Check your latest receipt
+### Upload
+
+```bash
+euthyne sync
+```
+
+`sync` uploads the mandates, then the receipts, and saves each receipt with its log proof. Run it whenever you want your receipts in the log. Background upload is planned.
+
+</Step>
+<Step>
+
+### Verify a receipt
 
 ```bash
 euthyne verify --last
 ```
 
-A new receipt is signed at once and recorded in the log within seconds. The independent timestamp follows a few hours later. Until then the receipt shows as **Witnessed, timestamp pending**. See [Trust levels](/docs/concepts/trust-levels).
+It checks the most recent receipt on your machine, without the network: the signatures, the session key's certificate, the log inclusion, and that the mandate it cites was logged before it. A genuine receipt exits with `0`. See [`verify`](/docs/cli/verify).
+
+To see what the session was allowed to do:
+
+```bash
+euthyne mandate show
+```
 
 </Step>
 </Steps>
 
+## Stop recording
+
+`euthyne uninstall` removes the hooks from the repository you are in. With the last repository, or with `--all`, it also removes the telemetry lines from your user settings. Receipts already signed stay valid. See [`uninstall`](/docs/cli/uninstall).
+
 ## Change receipts
 
-Receipts for merged pull requests need the Euthyne GitHub App on your GitHub organization. An organization owner installs it. See [Changes](/docs/concepts/changes).
+Receipts for merged pull requests will need the Euthyne GitHub App on your GitHub organization. They are planned. See [Changes](/docs/concepts/changes).
