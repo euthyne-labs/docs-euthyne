@@ -3,8 +3,8 @@ title: Offline verification
 description: Draft. Running the checks on your machine with euthyne verify.
 ---
 
-<Callout title="Coming soon">
-  `euthyne verify` is not released yet. This page describes the planned behavior.
+<Callout title="Draft">
+  `euthyne verify` is built but not publicly released. It does not check every step below yet. See [`euthyne verify`](/docs/cli/verify) for what it checks today.
 </Callout>
 
 `euthyne verify` runs [the four checks](/docs/spec/checks) on your machine. It does not ask Euthyne's servers for a verdict.
@@ -12,16 +12,16 @@ description: Draft. Running the checks on your machine with euthyne verify.
 ## Usage
 
 ```bash
-euthyne verify receipt.json --offline
+euthyne verify <receipt-file>
 euthyne verify --last
 ```
 
 - A file path verifies a saved receipt bundle.
-- `--last` verifies your most recent receipt.
-- `--offline` runs only the steps that need no network.
-- `--anchor-node <url>` checks the anchor against your own node.
+- `--last` verifies your most recent synced receipt.
+- `--json` prints the verdict as JSON.
+- Checking the anchor against your own node is planned.
 
-The command exits with `0` when the checks pass and `1` when one fails.
+The command exits with `0` when the receipt is genuine, `1` when a check fails, and `2` when it cannot check.
 
 ## What runs offline
 
@@ -41,7 +41,8 @@ A bundle grows as proofs arrive:
 
 1. The signed envelope.
 2. The inclusion proof and the signed checkpoint.
-3. The anchored checkpoint, with its consistency proof and OpenTimestamps proof.
+3. The mandate the receipt cites, with its own inclusion proof.
+4. The anchored checkpoint, with its consistency proof and OpenTimestamps proof (planned).
 
 The bundle format is not specified yet.
 

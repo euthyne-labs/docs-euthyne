@@ -10,13 +10,18 @@ Receipts never carry content in clear. Each content field becomes a commitment: 
 Each device holds a 32-byte commitment key `K` in its OS keychain. `K` never leaves the machine.
 
 ```text
-salt       = HMAC-SHA256(K, "euthyne/v1" || receipt_id || field)
-commitment = SHA-256(salt || value)
+K_s        = HMAC-SHA256(K, "euthyne/v1/session" || 0x00 || session_id)
+salt       = HMAC-SHA256(K_s, "euthyne/v1" || 0x00 || receipt_id || 0x00 || field)
+commitment = SHA-256(salt || JCS(value))
 ```
 
 - `||` is byte concatenation.
+- `session_id` is the harness's session ID.
 - `receipt_id` is the receipt's `id`.
 - `field` is the committed field name, the same as the `name` in the Statement's `subject`.
+- `JCS` is RFC 8785 canonical JSON of the field's JSON value.
+
+A per-session key `K_s` means a leaked session file opens that session's commitments and nothing else.
 
 The receipt's `salt_key` field names the commitment key ID and epoch, so a verifier knows which key a reveal must come from.
 
@@ -34,13 +39,13 @@ The receipt's `salt_key` field names the commitment key ID and epoch, so a verif
 ## Revealing a value
 
 ```bash
-euthyne reveal <receipt> <field>
+echo '<value as JSON>' | euthyne reveal <receipt-file> <field> --value-from-stdin
 ```
 
-This prints the salt and the value for one field of one receipt. To check a reveal:
+This checks the value against the commitment and prints the salt and the value for one field of one receipt. See [`euthyne reveal`](/docs/cli/reveal). To check a reveal:
 
 1. Verify the receipt itself. See [the four checks](/docs/spec/checks).
-2. Compute `SHA-256(salt || value)`.
+2. Compute `SHA-256(salt || JCS(value))`.
 3. Compare it with the digest of the matching `subject` entry.
 
 ## Losing the key
