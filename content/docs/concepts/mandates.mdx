@@ -1,0 +1,89 @@
+---
+title: Mandates
+description: What an agent was allowed to do in a session, signed and logged before its first action.
+---
+
+A receipt shows what an agent did. A mandate shows what it was allowed to do at that moment. Together they answer: was this action inside what the agent was allowed?
+
+## The session mandate
+
+A session mandate is the permission config in force for one agent session, as the harness itself defines it. Nobody writes it by hand. The CLI captures it from Claude Code's own settings when the session starts.
+
+It holds:
+
+- **The permission mode**, as Claude Code names it (`default`, `acceptEdits`, `plan`, `auto`, `dontAsk`, `bypassPermissions`) and in a normalized form.
+- **The allow, ask and deny rules**, verbatim, merged across every settings level: managed, user, project and local. A deny at any level wins.
+- **The MCP servers** the session can use: their names, transport and where they are configured.
+- **The working directories**, relative to the repository root.
+- **The sandbox settings.**
+- **A spend section**, reserved and empty. See [Spend](#spend).
+
+Only these permission keys are copied. The `env` blocks, API keys and key helpers in your settings are never read into the mandate, and neither are MCP server commands, URLs, headers or environment. Each settings file the CLI reads is referenced by a salted hash, never a plain one, because settings files can hold secrets.
+
+Mandates are captured for Claude Code today. Codex, GitHub Copilot CLI and Cursor are planned.
+
+## Signed
+
+A mandate is a W3C Verifiable Credential 2.0, secured with a Data Integrity proof (`eddsa-jcs-2022`). It is issued by the session key, which your device key certifies, which Euthyne binds to you and your organization.
+
+The session key signs as a witness of the config in force. The mandate does not grant anything. Claude Code enforces its own settings, and the mandate records what they were.
+
+## The first log entry
+
+At the first hook of a session, the CLI signs version 1 of the mandate and saves it before any receipt. [`euthyne sync`](/docs/cli/sync) uploads mandates before the receipts that cite them, so the mandate gets a lower log index than every action checked against it.
+
+[`euthyne verify`](/docs/cli/verify) checks this. If a mandate was logged after the action, its row reads "This mandate was recorded after the action". That row is reported on its own and does not change the receipt's verdict.
+
+Once the log is timestamped independently, the timestamp will also prove the mandate existed by that time. Independent timestamps are planned.
+
+## Versions
+
+A session's permissions can change. When the permission mode changes, or a settings file changes, the next hook signs a new version. Each new version points to the digest of the one before, so the history of a session's permissions is a chain that cannot be rewritten quietly.
+
+Every receipt names the version in force when it was signed.
+
+## Checks
+
+Every receipt records one check against the mandate version in force: its result, the rule that matched, and where the decision came from.
+
+| Result | Shown as | Means |
+| --- | --- | --- |
+| `in` | In mandate | An allow rule or the mode allowed it, or you approved it when asked. Also when Claude Code denied the attempt: the mandate held |
+| `out` | Outside mandate | A deny rule matches an action that ran anyway |
+| `unknown` | Not determined | No rule decides, the rule cannot be evaluated, or the rules may have come from command-line flags the CLI cannot see |
+
+The source is one of `harness_decision`, `rule_match`, `mode` or `none`. An `unknown` check carries a reason, such as `no_rule` or `cli_flags`.
+
+A check is evidence, not a verdict on the agent. It records what Euthyne saw.
+
+## Observe and flag
+
+Euthyne never blocks an action, a commit or a merge. The hooks do not use `PreToolUse`, so they can never stop a tool call. An action outside the mandate is recorded as such, and that is all.
+
+Agents never see their mandate. The hooks write nothing to the agent's context, and the planned MCP tools will never return mandates or checks. The agent behaves the same with Euthyne as without it.
+
+You can see yours. [`euthyne mandate show`](/docs/cli/mandate) prints every version of a session's mandate on your machine.
+
+## Spend
+
+Every mandate has a `spend` section from the first version: an allowance per period (amount, currency, period), and the merchants and categories allowed. It is empty for coding sessions today.
+
+It is reserved so the format stays stable when payment capture arrives. Then a payment an agent makes will be checked against it like any other action. Payment capture is planned.
+
+## Org policy
+
+<Callout title="Planned">Not built yet.</Callout>
+
+An org policy will add your organization's own rules on top of each harness's config: commands, files, web domains, MCP servers and tools, permission modes. It will be a signed credential too, issued with a key your organization holds, not Euthyne. Each save will be a new version, with its history kept.
+
+Actions outside the policy will be flagged and will raise an alert. Nothing will be blocked.
+
+## Who sees it
+
+Mandate rules are metadata in clear. They can name paths, commands and domains. In the dashboard, members of your organization will see the mandates of sessions they can see. Verify pages will show only the check result and the matched rule.
+
+## What a mandate proves
+
+It proves what the captured config said, when, on which device, for which session, and that it was recorded before the actions checked against it.
+
+It does not prove that the harness enforced it, that rules passed only as command-line flags were included, or anything about sessions where the hooks were off.
