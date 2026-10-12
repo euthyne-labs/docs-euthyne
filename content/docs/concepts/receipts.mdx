@@ -3,35 +3,44 @@ title: Receipts
 description: A receipt is a signed record of one agent action.
 ---
 
-When an agent in Claude Code or Codex uses a tool, the harness runs a hook. The hook calls the `euthyne` CLI, which builds a receipt and signs it on your machine. Editing a file, running a shell command and calling an MCP tool each produce one receipt.
+When Claude Code fires a hook, it calls the `euthyne` CLI, which builds a receipt and signs it on your machine. Editing a file, running a shell command, fetching a web page and calling an MCP tool each produce one receipt. So do session start and end, prompts, subagents and the end of each agent turn.
+
+Receipts are built for Claude Code today. Codex, GitHub Copilot CLI and Cursor are planned.
 
 ## What a receipt contains
 
 Metadata, in clear:
 
 - **Who:** the organization, the fingerprint of the device key, and the human behind it as a forge account, for example `github:12345`.
-- **Which agent:** the harness name and version, and the model ID.
-- **What happened:** the hook event, the tool name, the outcome (`ok`, `error` or `denied`) and the duration.
-- **Where:** the repository remote, the branch, the `HEAD` commit, and the paths of touched files with their git blob hash after the action. After a `git commit`, the new commit SHA.
+- **Which agent:** the harness, the model ID, and the subagent ID and type when a subagent acted.
+- **What happened:** the hook event and its normalized type, the tool name and kind, the outcome (`ok`, `error`, `interrupted` or `denied`) and the duration.
+- **MCP:** for an MCP tool call, the server name and the tool name.
+- **Web research:** for a fetch, the domain. For a search, only that a search happened. The full URL and the query are salted hashes.
+- **Permissions:** the permission mode, the [mandate](/docs/concepts/mandates) version in force, and the check of this action against it (`in`, `out` or `unknown`) with the rule that matched.
+- **Tokens and cost:** input, output and cache tokens, cost, request count and API time since the previous receipt of the session, with running totals. Present only when you accepted telemetry. See [What we store](/docs/concepts/what-we-store#tokens-and-cost).
+- **Where:** the repository remote, the branch, the `HEAD` commit, and the paths of touched files with their git blob hash after the action. When `HEAD` moved, the new commit SHA.
 - **Position in the session:** the session ID, a sequence number, and the digest of the previous receipt. See [Sessions](/docs/concepts/sessions).
 
-Content, as salted hashes: the tool input and output, and the prompt. These hashes are called commitments. See [What we store](/docs/concepts/what-we-store).
+Content, as salted hashes: the whole hook payload, the tool input and output, the prompt, and the web URL or query. These hashes are called commitments. See [What we store](/docs/concepts/what-we-store).
 
-The receipt also says where the model ID came from: `hook`, `transcript` or `unknown`. Claude Code does not always include the model in its hook data. When it is missing, the CLI reads it from the local session transcript, and records `unknown` if that fails too. Codex includes the model in every hook.
+The receipt also says where the model ID came from: `hook` or `unknown`. Claude Code does not always include the model in its hook data. When it is missing, the receipt says `unknown`. The token usage from telemetry lists the models that were billed.
 
 ## Signed on your machine
 
-The hook works locally and does not touch the network. It signs the receipt, writes it to a local queue and exits. A background `euthyne sync` uploads the queue. Receipts survive restarts and offline periods.
+The hook works locally and does not touch the network. It signs the receipt, writes it to a local queue and exits. [`euthyne sync`](/docs/cli/sync) uploads the queue. Receipts survive restarts and offline periods.
 
-Receipts are signed with a short-lived session key. Your device key certifies that session key when the session starts. The device key lives in your OS keychain, and Euthyne issues a credential that binds it to you and your organization. See [the action receipt format](/docs/spec/action-receipt).
+Receipts are signed with a short-lived session key. Your device key certifies that session key when the session starts, for 24 hours at most. The device key lives in your OS keychain, and enrolment binds it to you and your organization. See [the action receipt format](/docs/spec/action-receipt).
 
 ## From signed to witnessed
 
-After upload, Euthyne checks the receipt and appends its digest to a public, append-only log. Later, the log state is timestamped independently through OpenTimestamps. Each step raises the receipt's trust level. See [Trust levels](/docs/concepts/trust-levels).
+When you sync, Euthyne checks each receipt and appends its digest to a public, append-only log. `sync` fetches the proof that the receipt is in the log and saves it with the receipt, as a bundle you can verify offline with [`euthyne verify`](/docs/cli/verify).
+
+Later, the log state will be timestamped independently, so its age does not depend on Euthyne. Independent timestamps are planned. Each step raises the receipt's trust level. See [Trust levels](/docs/concepts/trust-levels).
 
 ## What a receipt does not prove
 
 - It does not show that the action was correct, safe or intended.
 - It does not show the content. The content is a salted hash. You can reveal one field to an auditor with [`euthyne reveal`](/docs/cli/reveal).
 - It does not show that every action was recorded. A developer can turn hooks off. A gap inside a session breaks the session chain. A session that was never recorded shows on the forge side, as a merge without receipts.
-- Its time comes from the device clock. The log and the independent timestamp give later bounds that do not depend on the device.
+- Its check against the mandate is evidence, not a verdict. Claude Code enforces its own settings. Euthyne records what it saw.
+- Its time comes from the device clock. The log, and later the independent timestamp, give bounds that do not depend on the device.

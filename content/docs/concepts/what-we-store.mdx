@@ -1,47 +1,88 @@
 ---
 title: What we store
-description: Metadata in clear, content as salted commitments, and opt-in command retention.
+description: Metadata in clear, content as salted commitments, and nothing recorded until you accept.
 ---
 
-Euthyne needs enough metadata to answer who did what, where and when. It does not need the content of your work. By default, content never leaves your machine.
+Euthyne needs enough metadata to answer who did what, where, when, and whether it was allowed. It does not need the content of your work. Content never leaves your machine.
+
+## Nothing until you accept
+
+[`euthyne init`](/docs/cli/init) shows what is recorded and what never is, and asks you to type `yes`. Until you do, the hooks record nothing, even if someone else installed them. What you accepted, the consent text version and the time, is sent with your device's enrolment.
+
+Tokens and cost need a second yes, because they change your user-level Claude Code settings. See [Tokens and cost](#tokens-and-cost).
 
 ## Metadata, in clear
 
 - Harness and model
 - Forge account ID of the human
-- Repository and branch
-- Tool name and outcome
-- File paths
-- Git commit and blob SHAs
+- Repository remote, branch and commits
+- Tool name and kind, outcome and duration
+- MCP server and tool names
+- Web research: the domain of each fetch
+- File paths, with git commit and blob SHAs
 - Timestamps
+- The permission mode on every receipt
+- The [mandate](/docs/concepts/mandates): allow, ask and deny rules, MCP server names, working directories and sandbox settings
+- The check of each action against the mandate, with the matched rule
+- Tokens, cost, request count and API time
 - Commitments (salted hashes of the content)
 
-An organization can choose to hash file paths too.
+Mandate rules can name paths, commands and domains.
 
 ## Content, as salted commitments
 
-Prompts, tool inputs and outputs, commands, file contents and diffs stay on your machine. The receipt holds only a salted hash of each, called a commitment.
+Prompts, tool inputs and outputs, commands, file contents and diffs stay on your machine. The receipt holds only a salted hash of each, called a commitment. The whole hook payload is committed too.
 
 A commitment hides the value, even a short or guessable one like `ls`, because each salt is secret and unique. Later, you can reveal one value to an auditor with [`euthyne reveal`](/docs/cli/reveal). The auditor recomputes the hash and checks it matches. Revealing one value opens nothing else. See [Commitments](/docs/spec/commitments).
+
+## Web research
+
+When an agent fetches a page, the receipt keeps the domain in clear. The full URL is only a salted hash.
+
+When it searches the web, the receipt records that a search happened. The query is only a salted hash.
+
+## MCP servers
+
+The mandate lists the MCP servers a session can use, by name, with their transport and where they are configured. Each receipt for an MCP tool call names the server and the tool.
+
+Server commands, URLs, headers and environment variables are never read.
+
+## Tokens and cost
+
+Claude Code reports tokens and cost through OpenTelemetry, not through hooks. To read them, `init` asks to add telemetry lines to your user-level settings (`~/.claude/settings.json`). They export only to a receiver on your machine, on `127.0.0.1`, that checks a secret unique to your install.
+
+- The lines apply to all your Claude Code sessions, so `init` asks first. Skip it with `--no-otel`.
+- The receiver keeps only tokens, cost, duration, model and session IDs. Every other attribute is dropped and never written.
+- It keeps usage only for sessions in repositories you enrolled.
+- Usage goes into the next receipt of that session, as the change since the previous one. Usage that arrives after the session ends goes into a final usage receipt.
+- If you already export OpenTelemetry somewhere, `init` leaves your settings as they are and records no tokens or cost.
+- [`euthyne uninstall`](/docs/cli/uninstall) removes exactly the lines `init` added.
 
 ## Never leaves your machine
 
 - Prompts, tool inputs and outputs, file contents, diffs and transcripts
-- Commands, unless your organization opts in (see below)
+- Commands and tool arguments
+- Full URLs and search queries
+- Settings `env` blocks, API keys and key helpers
+- MCP server commands, URLs, headers and environment
+- Telemetry attributes other than tokens, cost, duration, model and session IDs
 - The commitment key that derives the salts
 - Private keys
 
-Keys live in your OS keychain. On headless Linux without a secret service, they fall back to a file only you can read, and receipts made with it say so.
+Keys live in your OS keychain. With `--keystore file`, they go to files only you can read.
 
 ## Opt-in command retention
 
-An organization can choose to keep commands and tool arguments. They are redacted on the device before signing, and Euthyne stores them encrypted at rest. Prompts and file contents always stay hashes, even with this option on.
+<Callout title="Planned">Not built yet.</Callout>
+
+An organization will be able to keep commands and tool arguments, redacted on the device before signing and encrypted at rest. Prompts and file contents will always stay hashes, even with this option on.
 
 ## The public log
 
-The log holds a hash of each receipt and nothing else. It carries no organization ID. Anyone can read it, and all it shows is how many entries there are.
+The log holds a hash of each receipt and mandate, and nothing else. It carries no organization ID. Anyone can read it, and all it shows is how many entries there are.
 
 ## Verify links and erasure
 
-- Verify links use a random ID, so receipts cannot be listed by guessing. A verify page is visible only to people who have the link, unless the repository is set to public.
+- Verify links will use a random ID, so receipts cannot be listed by guessing. A verify page will be visible only to people who have the link, unless the repository is set to public.
 - Your login and email are personal data. They can be erased. Erasure removes the stored receipts and personal fields. The log keeps only a hash that no longer links to you.
+- Hashed data is still personal data under GDPR, so these rules apply to hashes too.
