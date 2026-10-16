@@ -67,7 +67,7 @@ The acceptance is per organization and per text version. When the text changes, 
 
 ## Tokens and cost
 
-Claude Code reports tokens and cost through OpenTelemetry, not through hooks. Once the hooks are installed, `init` asks:
+Claude Code reports tokens and cost through OpenTelemetry, not through hooks. After the hooks question, `init` asks:
 
 ```text
 Add usage telemetry to your user settings? This applies to all your Claude Code sessions. Euthyne only keeps usage for repos you enrolled.
@@ -133,7 +133,7 @@ One entry per event, each running `euthyne hook claude-code`:
 They go in one of two places:
 
 - `repo`: `.claude/settings.local.json` in this repository. `init` adds that file to `.git/info/exclude`, so it is never committed by accident.
-- `user`: your Claude Code user settings (`~/.claude/settings.json`, or the one under `CLAUDE_CONFIG_DIR`), so the hooks run in every project. Before it writes, `init` saves a copy of that file, readable only by you. [`uninstall`](/docs/cli/uninstall) deletes the copy.
+- `user`: your Claude Code user settings (`~/.claude/settings.json`, or the one under `CLAUDE_CONFIG_DIR`), so the hooks run in every project. Before it writes, `init` saves a copy of that file, readable only by you. It writes through a symlink and rewrites the file as JSON indented with two spaces; when that changes its formatting, `init` warns you and the copy keeps your version. [`uninstall`](/docs/cli/uninstall) deletes the copy.
 
 Pick one with `--hooks repo` or `--hooks user`. Without `--hooks`, `init` asks:
 
@@ -153,9 +153,9 @@ Wherever the hooks are, only sessions in enrolled repositories are recorded. A r
 - you ran `euthyne init` in it, or
 - its origin remote matches a pattern you gave with `--enrol`.
 
-A pattern is a host and a path, with no scheme or user, for example `github.com/your-org/*`. Case does not matter. `*` matches within one path segment, so `github.com/your-org/*` matches `git@github.com:your-org/api.git` and `https://github.com/your-org/api`, but not `github.com/your-org/team/api`. Pass `--enrol` more than once for several patterns. They are kept until [`uninstall --all`](/docs/cli/uninstall).
+A pattern is a host and a path, with no scheme or user, for example `github.com/your-org/*`. Case does not matter. `*` matches within one path segment, so `github.com/your-org/*` matches `git@github.com:your-org/api.git` and `https://github.com/your-org/api`, but not `github.com/your-org/team/api`. Pass `--enrol` more than once for several patterns. Remove one with [`uninstall --enrol <pattern>`](/docs/cli/uninstall), or all of them with `uninstall --all`.
 
-Once a session has been in an enrolled repository, it stays recorded if it moves to another directory. Its receipts from there carry no repository, branch, commits or file paths.
+Once a session has been in an enrolled repository, it stays recorded if it moves to a directory outside any git repository. Its receipts from there carry no repository, branch, commits or file paths. Its actions inside another repository that is not enrolled are not recorded.
 
 Sessions anywhere else are not recorded at all: no receipt and no mandate.
 

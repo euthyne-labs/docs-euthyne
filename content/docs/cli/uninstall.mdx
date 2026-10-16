@@ -16,7 +16,7 @@ Run it inside the repository, or anywhere with `--all`. It lists what it will re
 
 - The Euthyne hooks in this repository's `.claude/settings.local.json`. Your other hooks and settings stay.
 - The `.git/info/exclude` line `init` added.
-- This repository from the list of enrolled ones, so its sessions are no longer recorded. If its origin remote matches an `--enrol` pattern, it is still recorded until you run `uninstall --all`.
+- This repository from the list of enrolled ones, so its sessions are no longer recorded. If its origin remote matches an `--enrol` pattern, it is still recorded and `uninstall` warns you. Remove the pattern with `uninstall --enrol <pattern>`.
 
 When no enrolled repository and no `--enrol` pattern is left, it also removes what `init` added to your user settings: the hooks, if you installed them for every project, and the telemetry lines. It deletes the copies of that file it kept. Every other line stays as it was. A telemetry line you changed since `init` is left in place, with a warning.
 
@@ -26,6 +26,7 @@ With `--all`, it does this for every enrolled repository, forgets the `--enrol` 
 
 | Flag | Effect |
 | --- | --- |
+| `--enrol <pattern>` | Removes this `--enrol` pattern instead of the current repository, and stops recording the repositories it matched. Repeat it for several patterns |
 | `--all` | Every enrolled repository and `--enrol` pattern, the hooks and telemetry lines in your user settings, and your recording consent. Revokes this device |
 | `--yes` | Removes without asking |
 
