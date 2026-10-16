@@ -11,7 +11,7 @@ Receipts are built for Claude Code today. Codex, GitHub Copilot CLI and Cursor a
 
 Metadata, in clear:
 
-- **Who:** the organization, the fingerprint of the device key, and the human behind it as a forge account, for example `github:12345`.
+- **Who:** the organization, the fingerprint of the device key, and the human behind it as a Euthyne user ID, for example `euthyne:usr_01K9…`.
 - **Which agent:** the harness, the model ID, and the subagent ID and type when a subagent acted.
 - **What happened:** the hook event and its normalized type, the tool name and kind, the outcome (`ok`, `error`, `interrupted` or `denied`) and the duration.
 - **MCP:** for an MCP tool call, the server name and the tool name.
@@ -27,7 +27,7 @@ The receipt also says where the model ID came from: `hook` or `unknown`. Claude 
 
 ## Signed on your machine
 
-The hook works locally and does not touch the network. It signs the receipt, writes it to a local queue and exits. [`euthyne sync`](/docs/cli/sync) uploads the queue. Receipts survive restarts and offline periods.
+The hook works locally and does not touch the network. It signs the receipt, writes it to a local queue and exits. [`euthyne sync`](/docs/cli/sync), which the hook starts in the background, uploads the queue. Receipts survive restarts and offline periods.
 
 Receipts are signed with a short-lived session key. Your device key certifies that session key when the session starts, for 24 hours at most. The device key lives in your OS keychain, and enrolment binds it to you and your organization. See [the action receipt format](/docs/spec/action-receipt).
 

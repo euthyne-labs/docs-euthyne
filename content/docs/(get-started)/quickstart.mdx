@@ -1,12 +1,12 @@
 ---
 title: Quickstart
-description: Set up a repository, record a Claude Code session and verify a receipt.
+description: Install the CLI, set up a repository, record a Claude Code session and verify a receipt.
 ---
 
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 
 <Callout title="Preview">
-  The CLI is in testing with design partners and is not publicly released. You need a build and a one-time enrolment token from us. Commands and output may change.
+  The CLI is new. Commands and output may change.
 </Callout>
 
 You need macOS or Linux, git, Claude Code, and a git repository to record.
@@ -14,11 +14,19 @@ You need macOS or Linux, git, Claude Code, and a git repository to record.
 <Steps>
 <Step>
 
-### Get the CLI and a token
+### Install the CLI
 
-During the preview, we send you the `euthyne` binary, the server URL, and a one-time enrolment token. The token enrols one machine and expires after an hour by default. Save it to a file and keep it out of your shell history.
+```bash
+brew install euthyne-labs/tap/euthyne
+```
 
-A Homebrew tap, an install script and sign-in with GitHub are planned.
+Or, without Homebrew:
+
+```bash
+curl -fsSL https://euthyne.com/install | sh
+```
+
+The script installs to `~/.local/bin` and checks the download against the release's checksums. See [the CLI overview](/docs/cli) for its options. `euthyne --version` prints the version you have.
 
 </Step>
 <Step>
@@ -27,26 +35,39 @@ A Homebrew tap, an install script and sign-in with GitHub are planned.
 
 ```bash
 cd your-repo
-EUTHYNE_ENROL_TOKEN="$(cat enrol-token.txt)" euthyne init --server <server-url>
+euthyne init
 ```
 
-`init` first prints exactly what Euthyne records and what it never records, and asks you to type `yes`. Nothing is installed or recorded before you accept. See [the consent text](/docs/cli/init#the-consent-text).
+`init` first prints exactly what Euthyne records and what it never records, and asks you to type `yes` on your terminal. Nothing is installed or recorded before you accept. See [the consent text](/docs/cli/init#the-consent-text).
 
-Then it:
+Then it signs this machine in. Your browser opens on `app.euthyne.com`: type the code the terminal shows, approve, and pick your organization.
+
+If an admin gave you a one-time enrolment token, use it instead of the browser. Save it to a file and keep it out of your shell history:
+
+```bash
+euthyne init --token-stdin < enrol-token.txt
+```
+
+Or set `EUTHYNE_ENROL_TOKEN`. Then `init`:
 
 - creates a device key in your OS keychain, and your OS may ask you to allow this,
-- enrols this machine with the token, binding the key to you and your organization,
-- installs the Claude Code hooks in `.claude/settings.local.json`, which stays out of git.
+- enrols this machine, binding the key to you and your organization,
+- asks whether to install the Claude Code hooks for every project, in your user settings. Type `yes` for that, or anything else to keep them in this repository's `.claude/settings.local.json`, which stays out of git.
+
+Either way, only this repository is recorded. Sessions in other repositories produce nothing.
 
 It asks one more question: may it add telemetry lines to your user-level Claude Code settings, so tokens and cost are recorded? They export only to a receiver on your machine. Type `yes`, or `no` to skip. You can also pass `--no-otel`. See [Tokens and cost](/docs/cli/init#tokens-and-cost).
 
-It ends with a preview of the permissions your sessions will record:
+It ends with a preview of the permissions your sessions will record, and a test receipt:
 
 ```text
 Mandate preview: mode default · 12 allow · 2 ask · 3 deny · MCP github · sandbox off
+✓ Test receipt rcpt_01K7… signed, it shows at https://app.euthyne.com/dashboard/sessions/init-test-01k7… once synced
 ```
 
-To set up another repository on the same machine, run `euthyne init` there. No token needed.
+Open the link to see it on the dashboard once it is uploaded.
+
+To record another repository on the same machine, run `euthyne init` there. No sign-in needed. To record every repository of your GitHub organization without running `init` in each, run `euthyne init --enrol 'github.com/your-org/*'`. See [Which repositories are recorded](/docs/cli/init#which-repositories-are-recorded).
 
 </Step>
 <Step>
@@ -55,18 +76,26 @@ To set up another repository on the same machine, run `euthyne init` there. No t
 
 Start Claude Code in the repository and work as you normally do. Restart it if it was already open, so it picks up the hooks and the telemetry lines.
 
-Each hook event becomes a signed receipt in a local queue. The first one of each session is preceded by the session's [mandate](/docs/concepts/mandates). The agent sees none of it, and nothing is blocked.
+Each hook event becomes a signed receipt in a local queue. The first one of each session is preceded by the session's [mandate](/docs/concepts/mandates). The hook then uploads the queue in the background. The agent sees none of it, and nothing is blocked.
 
 </Step>
 <Step>
 
-### Upload
+### Check the upload
+
+```bash
+euthyne status
+```
+
+`status` shows how many receipts are waiting, the last sync and any hook error. See [`status`](/docs/cli/status).
+
+To upload right away and see each receipt land in the log:
 
 ```bash
 euthyne sync
 ```
 
-`sync` uploads the mandates, then the receipts, and saves each receipt with its log proof. Run it whenever you want your receipts in the log. Background upload is planned.
+`sync` uploads the mandates, then the receipts, and saves each receipt with its log proof.
 
 </Step>
 <Step>
@@ -77,7 +106,7 @@ euthyne sync
 euthyne verify --last
 ```
 
-It checks the most recent receipt on your machine, without the network: the signatures, the session key's certificate, the log inclusion, and that the mandate it cites was logged before it. A genuine receipt exits with `0`. See [`verify`](/docs/cli/verify).
+It checks the most recent receipt on your machine: the signatures, the session key's certificate, the log inclusion, and that the mandate it cites was logged before it. A genuine receipt exits with `0`. See [`verify`](/docs/cli/verify).
 
 To see what the session was allowed to do:
 
@@ -90,7 +119,7 @@ euthyne mandate show
 
 ## Stop recording
 
-`euthyne uninstall` removes the hooks from the repository you are in. With the last repository, or with `--all`, it also removes the telemetry lines from your user settings. Receipts already signed stay valid. See [`uninstall`](/docs/cli/uninstall).
+`euthyne uninstall` removes the hooks from the repository you are in and stops recording it. With the last repository and no `--enrol` pattern left, or with `--all`, it also removes the hooks and telemetry lines from your user settings. Receipts already signed stay valid. See [`uninstall`](/docs/cli/uninstall).
 
 ## Change receipts
 

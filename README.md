@@ -2,7 +2,7 @@
 
 Documentation for [Euthyne](https://euthyne.com), built with [Fumadocs](https://fumadocs.dev) on Next.js as a static export.
 
-The CLI and API are not released yet. These docs describe the planned design.
+The CLI is new and the API is not released yet. Pages mark what is still planned.
 
 ```bash
 npm install

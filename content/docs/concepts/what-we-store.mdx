@@ -7,14 +7,16 @@ Euthyne needs enough metadata to answer who did what, where, when, and whether i
 
 ## Nothing until you accept
 
-[`euthyne init`](/docs/cli/init) shows what is recorded and what never is, and asks you to type `yes`. Until you do, the hooks record nothing, even if someone else installed them. What you accepted, the consent text version and the time, is sent with your device's enrolment.
+[`euthyne init`](/docs/cli/init) shows what is recorded and what never is, and asks you to type `yes` on your terminal. Until you do, the hooks record nothing, even if someone else installed them. `--yes` does not accept for you. What you accepted, the consent text version and the time, is sent with your device's enrolment.
+
+Even then, only sessions in enrolled repositories are recorded. A repository is enrolled when you run `init` in it, or when its origin remote matches a pattern you gave with `--enrol`, such as `github.com/your-org/*`. This holds when the hooks are in your user settings and run in every project. Sessions anywhere else produce no receipt and no mandate. Once a session has been in an enrolled repository, it stays recorded if it moves elsewhere, but without the repository, branch, commits or file paths. See [Which repositories are recorded](/docs/cli/init#which-repositories-are-recorded).
 
 Tokens and cost need a second yes, because they change your user-level Claude Code settings. See [Tokens and cost](#tokens-and-cost).
 
 ## Metadata, in clear
 
 - Harness and model
-- Forge account ID of the human
+- Euthyne user ID of the human
 - Repository remote, branch and commits
 - Tool name and kind, outcome and duration
 - MCP server and tool names
@@ -53,7 +55,7 @@ Claude Code reports tokens and cost through OpenTelemetry, not through hooks. To
 
 - The lines apply to all your Claude Code sessions, so `init` asks first. Skip it with `--no-otel`.
 - The receiver keeps only tokens, cost, duration, model and session IDs. Every other attribute is dropped and never written.
-- It keeps usage only for sessions in repositories you enrolled.
+- It keeps usage only for sessions in enrolled repositories.
 - Usage goes into the next receipt of that session, as the change since the previous one. Usage that arrives after the session ends goes into a final usage receipt.
 - If you already export OpenTelemetry somewhere, `init` leaves your settings as they are and records no tokens or cost.
 - [`euthyne uninstall`](/docs/cli/uninstall) removes exactly the lines `init` added.

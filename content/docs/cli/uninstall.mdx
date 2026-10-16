@@ -3,31 +3,34 @@ title: euthyne uninstall
 description: Remove exactly what init wrote.
 ---
 
-<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
+<Callout title="Preview">Flags may change.</Callout>
 
 ```bash
 euthyne uninstall
 euthyne uninstall --all
 ```
 
-Run it inside the repository, or anywhere with `--all`. It lists what it will remove and asks you to type `yes`.
+Run it inside the repository, or anywhere with `--all`. It lists what it will remove and asks you to type `yes`. Without a terminal, pass `--yes`.
 
 ## What it removes
 
 - The Euthyne hooks in this repository's `.claude/settings.local.json`. Your other hooks and settings stay.
 - The `.git/info/exclude` line `init` added.
-- This repository from the list of enrolled ones, so its sessions are no longer recorded.
+- This repository from the list of enrolled ones, so its sessions are no longer recorded. If its origin remote matches an `--enrol` pattern, it is still recorded until you run `uninstall --all`.
 
-When no enrolled repository is left, it also removes the telemetry lines `init` added to your user settings, and deletes the copies of that file it kept. Every other line stays as it was. A line you changed since `init` is left in place, with a warning.
+When no enrolled repository and no `--enrol` pattern is left, it also removes what `init` added to your user settings: the hooks, if you installed them for every project, and the telemetry lines. It deletes the copies of that file it kept. Every other line stays as it was. A telemetry line you changed since `init` is left in place, with a warning.
+
+With `--all`, it does this for every enrolled repository, forgets the `--enrol` patterns, and always removes the hooks and telemetry lines from your user settings. It also withdraws your recording consent, on this device and on the server. The server revokes this device and its token, and `uninstall` replaces the device key, so a later `init` signs this machine in afresh. If the server cannot be reached, nothing is removed.
 
 ## Flags
 
 | Flag | Effect |
 | --- | --- |
-| `--all` | Every enrolled repository and the telemetry lines. Also withdraws your recording consent on this device |
+| `--all` | Every enrolled repository and `--enrol` pattern, the hooks and telemetry lines in your user settings, and your recording consent. Revokes this device |
 | `--yes` | Removes without asking |
 
 ## What stays
 
 - Receipts already signed stay valid and verifiable.
-- Your device key, the state directory and any receipts still in the queue stay on your machine. Run [`sync`](/docs/cli/sync) to upload what is queued.
+- The state directory and any receipts still in the queue stay on your machine. Without `--all`, your device key stays too.
+- Run [`sync`](/docs/cli/sync) before `uninstall --all` to upload what is queued. Once the device is revoked, it cannot upload.

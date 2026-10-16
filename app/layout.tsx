@@ -22,7 +22,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       <body className="flex flex-col min-h-screen font-sans">
         <div className="grain" aria-hidden />
         <Provider>
-          <Banner>Preview: the CLI and API are not released yet.</Banner>
+          <Banner>Preview: the CLI is new and the API is not released yet.</Banner>
           {children}
         </Provider>
       </body>

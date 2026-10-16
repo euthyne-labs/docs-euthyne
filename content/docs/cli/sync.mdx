@@ -3,13 +3,13 @@ title: euthyne sync
 description: Upload queued mandates and receipts, and save their log proofs.
 ---
 
-<Callout title="Preview">Built, not publicly released yet. Flags may change.</Callout>
+<Callout title="Preview">Flags may change.</Callout>
 
 ```bash
 euthyne sync
 ```
 
-Uploads everything the hooks queued on this machine. Run it by hand for now. Uploading in the background is planned.
+Uploads everything the hooks queued on this machine. The hook already starts it in the background after each event. Run it yourself to upload right away and see the result. If a sync is already running, it says so and exits.
 
 ## What it does
 
@@ -47,5 +47,4 @@ If the device clock is more than 5 minutes off the server, it warns for each aff
 
 ## Planned
 
-- Uploads started in the background by the hook, with retries and backoff.
 - Pruning of sent receipts after a few days.

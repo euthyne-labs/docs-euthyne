@@ -1,5 +1,5 @@
 {
   "title": "CLI reference",
   "defaultOpen": true,
-  "pages": ["index", "init", "hook", "sync", "verify", "mandate", "reveal", "uninstall", "---Planned---", "login", "status", "keys", "mcp"]
+  "pages": ["index", "init", "login", "status", "hook", "sync", "verify", "mandate", "reveal", "uninstall", "---Planned---", "keys", "mcp"]
 }

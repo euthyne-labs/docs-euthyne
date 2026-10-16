@@ -3,24 +3,25 @@ title: euthyne hook
 description: Called by Claude Code to sign a receipt for one hook event.
 ---
 
-<Callout title="Preview">Built for Claude Code, not publicly released yet.</Callout>
+<Callout title="Preview">Built for Claude Code. Details may change.</Callout>
 
 ```bash
 euthyne hook claude-code
 ```
 
-You do not run this yourself. [`init`](/docs/cli/init) registers it in `.claude/settings.local.json`, and Claude Code calls it on each hook event.
+You do not run this yourself. [`init`](/docs/cli/init) registers it in `.claude/settings.local.json`, or in your user settings with `--hooks user`, and Claude Code calls it on each hook event.
 
 On each call it:
 
 1. Reads the hook event JSON on stdin.
-2. Commits the whole payload, and each content field, as salted hashes.
-3. Captures the session's [mandate](/docs/concepts/mandates) if it is the first event of the session, or signs a new version if the permission mode or a settings file changed.
-4. Checks the action against the mandate in force: in, out or unknown.
-5. Signs an action receipt with the session key.
-6. Appends it to the local queue and exits.
+2. Checks that the session is in an enrolled repository, or was in one earlier. If not, it stops and records nothing.
+3. Commits the whole payload, and each content field, as salted hashes.
+4. Captures the session's [mandate](/docs/concepts/mandates) if it is the first event of the session, or signs a new version if the permission mode or a settings file changed.
+5. Checks the action against the mandate in force: in, out or unknown.
+6. Signs an action receipt with the session key.
+7. Appends it to the local queue, starts [`sync`](/docs/cli/sync) in the background if none is running, and exits.
 
-It never touches the network. Receipts wait in the queue until you run [`sync`](/docs/cli/sync).
+The hook itself never touches the network. The background sync uploads the queue and logs to `<home>/sync.log`. After a failed sync, the hook waits a minute before it starts another.
 
 If telemetry is set up, the hook also starts the local OpenTelemetry receiver when it is not running. It never waits for it.
 
@@ -28,9 +29,11 @@ If telemetry is set up, the hook also starts the local OpenTelemetry receiver wh
 
 Without an enrolled device, or without your accepted consent for this organization, it exits at once and records nothing. An admin who installs the hooks for you cannot turn recording on. Only you can, with `init`.
 
+It also records nothing for a session outside every enrolled repository, even when the hooks run in every project. See [Which repositories are recorded](/docs/cli/init#which-repositories-are-recorded).
+
 ## It never steers the agent
 
-The hook writes nothing to stdout, so nothing reaches the agent's context. It does not use `PreToolUse`, so it can never block a tool call. The agent is never told its mandate.
+The hook writes nothing to stdout, so nothing reaches the agent's context. It always exits `0`: errors go to `<home>/hook.log`, and [`status`](/docs/cli/status) shows them. It does not use `PreToolUse`, so it can never block a tool call. The agent is never told its mandate.
 
 ## Harnesses
 
