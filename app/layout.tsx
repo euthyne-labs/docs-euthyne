@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import { Banner } from 'fumadocs-ui/components/banner';
 import { Provider } from '@/components/provider';
 import { GENERAL_SANS_CSS_URL, jetbrainsMono } from '@/lib/fonts';
+import { siteUrl } from '@/lib/shared';
 import './global.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://docs.euthyne.com'),
+  metadataBase: new URL(siteUrl),
   title: {
     default: 'Euthyne docs',
     template: '%s | Euthyne docs',
