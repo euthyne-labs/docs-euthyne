@@ -1,29 +1,37 @@
 ---
 title: euthyne hook
-description: Called by Claude Code to sign a receipt for one hook event.
+description: Called by a coding agent to sign a receipt for one hook event, and to decide a tool call under an org policy.
 ---
 
-<Callout title="Preview">Built for Claude Code. Details may change.</Callout>
+<Callout title="Preview">Details may change.</Callout>
 
 ```bash
 euthyne hook claude-code
+euthyne hook copilot postToolUse
 ```
 
-You do not run this yourself. [`init`](/docs/cli/init) registers it in `.claude/settings.local.json`, or in your user settings with `--hooks user`, and Claude Code calls it on each hook event.
+You do not run this yourself. [`init`](/docs/cli/init) registers it in each agent's hooks file, and the agent calls it on each hook event. See [Supported agents](/docs/agents) for the file and events of each one.
+
+```text
+USAGE
+
+  euthyne hook <harness> [event] [--flags]
+```
 
 On each call it:
 
 1. Reads the hook event JSON on stdin.
 2. Checks that the session is in an enrolled repository, or was in one earlier. If not, it stops and records nothing.
-3. Commits the whole payload, and each content field, as salted hashes.
-4. Captures the session's [mandate](/docs/concepts/mandates) if it is the first event of the session, or signs a new version if the permission mode or a settings file changed.
-5. Checks the action against the mandate in force: in, out or unknown.
-6. Signs an action receipt with the session key.
-7. Appends it to the local queue, starts [`sync`](/docs/cli/sync) in the background if none is running, and exits.
+3. On a Claude Code or Codex `PreToolUse` event, decides the tool call against the org policy cached on this machine, if there is one. See [Org policy](/docs/concepts/policy).
+4. Commits the whole payload, and each content field, as salted hashes.
+5. Captures the session's [mandate](/docs/concepts/mandates) if it is the first event of the session, or signs a new version if the permission mode or a settings file changed.
+6. Checks the action against the mandate in force: in, out or unknown.
+7. Signs an action receipt with the session key, with the policy decision when there is one.
+8. Appends it to the local queue, starts [`sync`](/docs/cli/sync) in the background if none is running, and exits.
 
-The hook itself never touches the network. The background sync uploads the queue and logs to `<home>/sync.log`. After a failed sync, the hook waits a minute before it starts another.
+The hook itself never touches the network. The background sync uploads the queue, refreshes the org policy and logs to `<home>/sync.log`. After a failed sync, the hook waits a minute before it starts another.
 
-If telemetry is set up, the hook also starts the local OpenTelemetry receiver when it is not running. It never waits for it.
+If Claude Code telemetry is set up, the hook also starts the local OpenTelemetry receiver when it is not running. It never waits for it.
 
 ## When it records nothing
 
@@ -31,17 +39,29 @@ Without an enrolled device, or without your accepted consent for this organizati
 
 It also records nothing for a session outside every enrolled repository, even when the hooks run in every project. See [Which repositories are recorded](/docs/cli/init#which-repositories-are-recorded).
 
-## It never steers the agent
+## What reaches the agent
 
-The hook writes nothing to stdout, so nothing reaches the agent's context. It always exits `0`: errors go to `<home>/hook.log`, and [`status`](/docs/cli/status) shows them. It does not use `PreToolUse`, so it can never block a tool call. The agent is never told its mandate.
+The hook always exits `0`. Errors go to `<home>/hook.log`, and [`status`](/docs/cli/status) shows them.
+
+It writes to stdout in one case only: a Claude Code or Codex `PreToolUse` event that an enforced org policy denies or asks about. It then prints the harness's own deny or ask, naming the rule id and its reason, never the policy text. On a device with an org policy, if the hook fails on such an event, it prints a deny unless the policy's `onUndecidable` says `allow`: it fails closed.
+
+Without an org policy, in dry run, and for every other agent, it writes nothing, so nothing reaches the agent's context and it never blocks a call. The agent is never told its mandate.
 
 ## Harnesses
 
-| Harness | Command | Status |
-| --- | --- | --- |
-| Claude Code | `euthyne hook claude-code` | Built |
-| Codex | `euthyne hook codex` | Planned |
-| GitHub Copilot CLI | `euthyne hook copilot` | Planned |
-| Cursor | `euthyne hook cursor` | Planned |
+| Agent | Command |
+| --- | --- |
+| Claude Code | `euthyne hook claude-code` |
+| Codex | `euthyne hook codex` |
+| Cursor | `euthyne hook cursor` |
+| GitHub Copilot CLI | `euthyne hook copilot <event>` |
+| Gemini CLI | `euthyne hook gemini-cli` |
+| Grok Build | `euthyne hook grok-build` |
+| OpenCode | `euthyne hook opencode`, from the plugin `init` writes |
+| Antigravity | `euthyne hook antigravity <event>` |
+| Devin Desktop | `euthyne hook devin-desktop`, with the full path to `euthyne` |
+| Hermes Agent | `euthyne hook hermes` |
 
 Any other harness name is rejected. The command line stays the same across upgrades.
+
+When an agent also runs your Claude Code hooks, as Cursor, Copilot CLI and Grok Build do, the Claude Code hook recognizes the other agent's event and leaves it to that agent's hook, so each event is signed once.

@@ -18,6 +18,8 @@ Uploads everything the hooks queued on this machine. The hook already starts it 
 3. Checks each new log checkpoint against the ones this machine has seen before. A checkpoint that rewrites history stops the sync with a "log fork" or "log rollback" error.
 4. Waits for the checkpoints that cover the new receipts, fetches each receipt's inclusion proof, and saves a verified receipt bundle under `<home>/bundles/`. [`verify`](/docs/cli/verify) reads these bundles.
 
+Before it uploads, it refreshes the [org policy](/docs/concepts/policy) and its revocation status list once the policy's refresh interval has passed, and prints `Org policy refreshed` when it changed. A failed refresh is only a warning: the cached policy keeps deciding until its grace period ends.
+
 Receipts the server rejects move to `<home>/rejected/` with the reason, and are never retried.
 
 ## Flags
@@ -45,6 +47,6 @@ If the device clock is more than 5 minutes off the server, it warns for each aff
 | `0` | Done, or nothing to sync |
 | `1` | Some receipts were rejected, or the sync failed |
 
-## Planned
+## Soon
 
 - Pruning of sent receipts after a few days.

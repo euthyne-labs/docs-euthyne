@@ -10,7 +10,7 @@ euthyne mandate show
 euthyne mandate show --session <session-id>
 ```
 
-Prints every version of a session's [mandate](/docs/concepts/mandates): the Claude Code permission config in force, signed by the session key. By default it shows the session with the newest mandate on this machine.
+Prints every version of a session's [mandate](/docs/concepts/mandates): the agent's permission config in force, signed by the session key. For Claude Code that is the mode, the allow, ask and deny rules, MCP servers and sandbox. For Codex, the approval policy, sandbox mode, execpolicy rules and MCP servers. For Cursor, the `cursor-agent` allow and deny lists and MCP servers. For OpenCode, the permission rules and MCP servers from `opencode.json`, kept as text. For Gemini CLI, the tool rules and MCP servers in its `settings.json` files. See [Supported agents](/docs/agents) for the rest. By default it shows the session with the newest mandate on this machine.
 
 It reads from this machine only. Agents never call it, and nothing it prints reaches an agent.
 
@@ -18,7 +18,7 @@ It reads from this machine only. Agents never call it, and nothing it prints rea
 
 | Flag | Effect |
 | --- | --- |
-| `--session <id>` | The Claude Code session ID to show |
+| `--session <id>` | The agent session ID to show |
 | `--json` | Prints each version with its signed credential, digest and log index |
 
 ## Output
@@ -43,6 +43,6 @@ In force: v2 urn:euthyne:mandate:mdt_01K7…, valid until 2026-10-13T09:14:02Z
 
 Each version line shows the short digest, the permission mode as Claude Code names it and its normalized form, the time it was signed, and whether it is in the log yet. A version the server rejected is marked with `✗` and the reason.
 
-## Planned
+## Soon
 
 - `mandate diff <a> <b>`, to compare two versions.

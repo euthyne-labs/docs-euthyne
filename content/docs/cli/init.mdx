@@ -14,18 +14,21 @@ euthyne init --token-stdin < enrol-token.txt
 
 # hooks for every project, recording every repository of your GitHub organization
 euthyne init --hooks user --enrol 'github.com/your-org/*'
+
+# record Codex as well as Claude Code in this repository
+euthyne init --agent claude-code --agent codex
 ```
 
 Run it inside a git repository. Outside one, it stops with an error.
 
 ## What it does
 
-1. Shows what Euthyne records and what it never records, then asks you to type `yes` on your terminal. If you do not, it stops: nothing is installed and nothing is recorded.
+1. Shows what Euthyne records and what it never records, with one more paragraph for each agent other than Claude Code you pick with `--agent`, then asks you to type `yes` on your terminal. If you do not, it stops: nothing is installed and nothing is recorded.
 2. Creates this machine's device key in your OS keychain, or reuses the one it has.
 3. On the first run, signs this machine in through your browser, or with a one-time enrolment token. Your acceptance (the consent text version and the time) is sent with the enrolment. If the machine is already signed in, for example with [`login`](/docs/cli/login), it sends your acceptance to the server instead.
 4. Enrols the current repository.
-5. Asks where the hooks go, then installs them in this repository or in your user settings. See [Hooks it installs](#hooks-it-installs).
-6. Asks whether it may add Claude Code telemetry lines to your user settings, for tokens and cost. See [Tokens and cost](#tokens-and-cost).
+5. Asks where the hooks go, then installs them for each agent, in this repository or in your user settings. See [Hooks it installs](#hooks-it-installs).
+6. When Claude Code is one of the agents, asks whether it may add Claude Code telemetry lines to your user settings, for tokens and cost. See [Tokens and cost](#tokens-and-cost).
 7. Prints a summary and a preview of the [mandate](/docs/concepts/mandates) your sessions will record.
 8. Signs a test receipt and starts uploading it in the background. The output links to it on the dashboard, where it shows once uploaded.
 
@@ -35,7 +38,7 @@ Running `init` again in the same repository changes nothing that already exists.
 
 ## The consent text
 
-This is what `init` prints before it asks. `<server>` is the server you enrol with, `https://api.euthyne.com` by default.
+This is what `init` prints before it asks, for Claude Code. `<server>` is the server you enrol with, `https://api.euthyne.com` by default. Each other agent you pick adds a paragraph that lists its hook events, the permission settings read for its mandate, where its tokens come from, and any trust step it needs.
 
 ```text
 Euthyne records what Claude Code does in the repositories you enrol, so you can prove it later.
@@ -93,6 +96,7 @@ If your user settings already set an OpenTelemetry endpoint, protocol or headers
 | `--no-browser` | Prints the sign-in link instead of opening a browser |
 | `--token-stdin` | Reads a one-time enrolment token from the first line of stdin, instead of signing in through the browser |
 | `--token <token>` | Passes the token as an argument. Avoid it: the token lands in your shell history and process list, and `init` warns you |
+| `--agent <name>` | Agent to install the hooks for: `claude-code` (default), `codex`, `cursor`, `grok-build`, `copilot`, `opencode`, `devin-desktop`, `gemini-cli`, `antigravity` or `hermes`. Repeatable. See [Supported agents](/docs/agents) |
 | `--hooks <where>` | Where the hooks go: `repo` or `user`. Asked when not set. See [Hooks it installs](#hooks-it-installs) |
 | `--enrol <pattern>` | Also records every repository whose origin remote matches the pattern. Repeatable. Implies `--hooks user`. See [Which repositories are recorded](#which-repositories-are-recorded) |
 | `--accept-recording` | Accepts the recording terms without a terminal prompt. The terms are still printed |
@@ -126,11 +130,15 @@ With `--hooks user`, the hooks line names your user settings file. With `--enrol
 
 ## Hooks it installs
 
-One entry per event, each running `euthyne hook claude-code`:
+For Claude Code, one entry per event, each running `euthyne hook claude-code`:
 
-`SessionStart`, `UserPromptSubmit`, `PostToolUse`, `PostToolUseFailure`, `PermissionDenied`, `SubagentStart`, `SubagentStop`, `Stop` and `SessionEnd`.
+`SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionDenied`, `SubagentStart`, `SubagentStop`, `Stop` and `SessionEnd`.
 
-They go in one of two places:
+The `PreToolUse` entry carries `onFailure: "block"`, so that under an enforced [org policy](/docs/concepts/policy) a crash or a timeout of the hook blocks the call. Without an org policy, it returns at once and records nothing.
+
+The hooks of the other agents, their files and their trust steps are listed in [Supported agents](/docs/agents).
+
+For Claude Code, they go in one of two places:
 
 - `repo`: `.claude/settings.local.json` in this repository. `init` adds that file to `.git/info/exclude`, so it is never committed by accident.
 - `user`: your Claude Code user settings (`~/.claude/settings.json`, or the one under `CLAUDE_CONFIG_DIR`), so the hooks run in every project. Before it writes, `init` saves a copy of that file, readable only by you. It writes through a symlink and rewrites the file as JSON indented with two spaces; when that changes its formatting, `init` warns you and the copy keeps your version. [`uninstall`](/docs/cli/uninstall) deletes the copy.
@@ -159,7 +167,6 @@ Once a session has been in an enrolled repository, it stays recorded if it moves
 
 Sessions anywhere else are not recorded at all: no receipt and no mandate.
 
-## Planned
+## Soon
 
-- Codex, GitHub Copilot CLI and Cursor hooks.
 - `--shared`, to write the hook setup to a file the team commits.

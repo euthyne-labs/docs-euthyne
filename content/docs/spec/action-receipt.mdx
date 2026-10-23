@@ -91,7 +91,9 @@ These Claude Code hook events produce receipts or receipt data:
 
 The CLI also signs a `UsageSummary` receipt when token usage arrives after a session ended.
 
-Codex, GitHub Copilot CLI and Cursor are planned. Codex uses the same event names. Its tool hooks cover shell commands, `apply_patch`, MCP tools and local function tools. They do not cover tools hosted by the provider, such as web search.
+The other agents map their own events onto the same receipt. See [Supported agents](/docs/agents) for each one's events. Codex uses the same event names as Claude Code. Its tool hooks cover shell commands, `apply_patch`, MCP tools and local function tools. They do not cover tools hosted by the provider, such as web search.
+
+A `PreToolUse` receipt decided by an [org policy](/docs/concepts/policy) also carries `policy` (the version's ID, digest, version, status list index, when its status was checked, and the pinned issuer) and `decision` (effect, mode, tier, rule, source, cause and evaluator).
 
 ## Keys
 

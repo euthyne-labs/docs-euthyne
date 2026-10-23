@@ -3,9 +3,9 @@ title: Receipts
 description: A receipt is a signed record of one agent action.
 ---
 
-When Claude Code fires a hook, it calls the `euthyne` CLI, which builds a receipt and signs it on your machine. Editing a file, running a shell command, fetching a web page and calling an MCP tool each produce one receipt. So do session start and end, prompts, subagents and the end of each agent turn.
+When a coding agent fires a hook, it calls the `euthyne` CLI, which builds a receipt and signs it on your machine. Editing a file, running a shell command, fetching a web page and calling an MCP tool each produce one receipt. So do session start and end, prompts, subagents and the end of each agent turn.
 
-Receipts are built for Claude Code today. Codex, GitHub Copilot CLI and Cursor are planned.
+Receipts are built for Claude Code, Codex, Cursor, GitHub Copilot CLI, Gemini CLI, Grok Build, OpenCode, Antigravity, Devin Desktop and Hermes Agent. What each agent's hooks expose varies. See [Supported agents](/docs/agents).
 
 ## What a receipt contains
 
@@ -17,6 +17,7 @@ Metadata, in clear:
 - **MCP:** for an MCP tool call, the server name and the tool name.
 - **Web research:** for a fetch, the domain. For a search, only that a search happened. The full URL and the query are salted hashes.
 - **Permissions:** the permission mode, the [mandate](/docs/concepts/mandates) version in force, and the check of this action against it (`in`, `out` or `unknown`) with the rule that matched.
+- **Policy decision:** under an [org policy](/docs/concepts/policy), on a Claude Code or Codex tool call, the decision (allow, ask or deny, dry run or enforced, the rule) and the signed policy version it was decided with.
 - **Tokens and cost:** input, output and cache tokens, cost, request count and API time since the previous receipt of the session, with running totals. Present only when you accepted telemetry. See [What we store](/docs/concepts/what-we-store#tokens-and-cost).
 - **Where:** the repository remote, the branch, the `HEAD` commit, and the paths of touched files with their git blob hash after the action. When `HEAD` moved, the new commit SHA.
 - **Position in the session:** the session ID, a sequence number, and the digest of the previous receipt. See [Sessions](/docs/concepts/sessions).
@@ -35,7 +36,7 @@ Receipts are signed with a short-lived session key. Your device key certifies th
 
 When you sync, Euthyne checks each receipt and appends its digest to a public, append-only log. `sync` fetches the proof that the receipt is in the log and saves it with the receipt, as a bundle you can verify offline with [`euthyne verify`](/docs/cli/verify).
 
-Later, the log state will be timestamped independently, so its age does not depend on Euthyne. Independent timestamps are planned. Each step raises the receipt's trust level. See [Trust levels](/docs/concepts/trust-levels).
+A few hours later, the log state is timestamped independently and anchored on chain, so its age does not depend on Euthyne. `verify` checks that timestamp. Each step raises the receipt's trust level. See [Trust levels](/docs/concepts/trust-levels).
 
 ## What a receipt does not prove
 

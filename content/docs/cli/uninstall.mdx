@@ -7,6 +7,7 @@ description: Remove exactly what init wrote.
 
 ```bash
 euthyne uninstall
+euthyne uninstall --agent codex
 euthyne uninstall --all
 ```
 
@@ -16,9 +17,12 @@ Run it inside the repository, or anywhere with `--all`. It lists what it will re
 
 - The Euthyne hooks in this repository's `.claude/settings.local.json`. Your other hooks and settings stay.
 - The `.git/info/exclude` line `init` added.
+- The hooks of the other agents you installed in this repository: `.codex/hooks.json`, `.cursor/hooks.json`, `.github/hooks/euthyne.json`, `.opencode/plugins/euthyne.js`, `.devin/hooks.json`, `.gemini/settings.json`, `.agents/hooks.json` and `.grok/hooks/euthyne.json`. Only Euthyne's entries go.
 - This repository from the list of enrolled ones, so its sessions are no longer recorded. If its origin remote matches an `--enrol` pattern, it is still recorded and `uninstall` warns you. Remove the pattern with `uninstall --enrol <pattern>`.
 
 When no enrolled repository and no `--enrol` pattern is left, it also removes what `init` added to your user settings: the hooks, if you installed them for every project, and the telemetry lines. It deletes the copies of that file it kept. Every other line stays as it was. A telemetry line you changed since `init` is left in place, with a warning.
+
+With `--agent <name>`, it removes only that agent's hooks, from every enrolled repository and from your user settings, and stops recording that agent. The other agents keep recording. This is also how you remove the Hermes hooks from `~/.hermes/config.yaml`.
 
 With `--all`, it does this for every enrolled repository, forgets the `--enrol` patterns, and always removes the hooks and telemetry lines from your user settings. It also withdraws your recording consent, on this device and on the server. The server revokes this device and its token, and `uninstall` replaces the device key, so a later `init` signs this machine in afresh. If the server cannot be reached, nothing is removed.
 
@@ -26,6 +30,7 @@ With `--all`, it does this for every enrolled repository, forgets the `--enrol` 
 
 | Flag | Effect |
 | --- | --- |
+| `--agent <name>` | Removes only this agent's hooks, everywhere, and stops recording it: `codex`, `cursor`, `grok-build`, `copilot`, `opencode`, `devin-desktop`, `gemini-cli`, `antigravity` or `hermes` |
 | `--enrol <pattern>` | Removes this `--enrol` pattern instead of the current repository, and stops recording the repositories it matched. Repeat it for several patterns |
 | `--all` | Every enrolled repository and `--enrol` pattern, the hooks and telemetry lines in your user settings, and your recording consent. Revokes this device |
 | `--yes` | Removes without asking |

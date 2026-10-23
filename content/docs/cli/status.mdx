@@ -1,6 +1,6 @@
 ---
 title: euthyne status
-description: Show what this machine records, the upload queue, the last sync and hook errors.
+description: Show what this machine records, each agent, the upload queue, the last sync, hook errors and the org policy.
 ---
 
 <Callout title="Preview">Output may change.</Callout>
@@ -10,7 +10,7 @@ euthyne status
 euthyne status --json
 ```
 
-Shows this machine's enrolment, what it records, the upload queue, the last sync, hook errors and telemetry. It reads local state only and never touches the network.
+Shows this machine's enrolment, what it records, each agent's hooks, the upload queue, the last sync, hook errors, telemetry and the org policy. It reads local state only and never touches the network.
 
 ## Output
 
@@ -20,17 +20,23 @@ Shows this machine's enrolment, what it records, the upload queue, the last sync
 ✓ 2 enrolled repositories
 ✓ Also recording repositories whose origin remote matches github.com/acme/*
 ✓ Hooks in /home/you/.claude/settings.json (every project)
+✓ Claude Code: recording (hooks in /home/you/.claude/settings.json, first receipt 2026-10-12T09:14:05Z)
+! Codex: waiting for trust, start codex in the repository, open /hooks and trust the Euthyne hooks (codex exec skips untrusted hooks) (hooks in each enrolled repository)
 ✓ Spool: 0 pending, 14 sent, 0 rejected
 ✓ Last sync 2026-10-12T09:20:11Z
 ✓ No hook errors
 ✓ Telemetry on, receiver idle on 127.0.0.1:47318
+✓ Org policy default v3 3f9a0c1b2d4e · dry run, nothing is blocked · scope enrolled-repos
 ```
 
 - The patterns line shows only when you gave `--enrol`. The hooks line shows only when the hooks are in your user settings.
 - `Spool` is the upload queue. It warns when the server rejected receipts.
 - The sync line says whether a sync is running, when the last one succeeded, or when the last one failed and why.
 - Hook errors are logged in `<home>/hook.log`. The line shows how many there were and the last one. Malformed hook payloads, signed as reduced receipts, are counted on their own line.
+- One line per agent you installed: recording since its first receipt, waiting for its first event, or waiting for you to trust its hooks, with what to do.
 - Without telemetry, it warns that tokens and cost are not recorded.
+- The policy line names the [org policy](/docs/concepts/policy) cached here, its mode and scope. Enforced, it reads `Claude Code enforced, Codex enforced but fails open on timeout, other agents record only`. Without a policy it reads `No org policy: agents are recorded, nothing is decided or blocked`.
+- A `Policy gap` warning follows for anything that weakens the policy on this machine: a cache that does not verify or is missing, a missing pin, a Claude Code or Codex `PreToolUse` hook that is missing or not fail-closed, hooks that are per repository under an `all-sessions` scope, and how many receipts flag a gap.
 
 On a machine that is not enrolled, it prints `! Not enrolled: run euthyne init in a repository`.
 
@@ -46,8 +52,10 @@ On a machine that is not enrolled, it prints `! Not enrolled: run euthyne init i
 | `consent` | The accepted terms (`org`, `version`, `surface`, `accepted_at`), or `null` |
 | `repos` | Paths of the repositories you ran `init` in |
 | `hook_settings` | The user settings file that holds the hooks. Only when they run in every project |
+| `agents` | One entry per agent: `name`, `label`, `hooks`, `settings`, `state` (`recording`, `waiting_for_first_event` or `waiting_for_trust`) and `first_receipt_at` |
 | `remote_patterns` | The `--enrol` patterns. Only when there are some |
 | `spool` | `pending`, `sent` and `rejected` receipt counts |
 | `sync` | `running`, `last_attempt_at`, `last_success_at` and `last_error` |
 | `hooks` | `errors`, `last_error`, `last_error_at`, `malformed` and `last_malformed_at` |
 | `telemetry` | `enabled`, `port`, `receiver_running` and `settings` |
+| `policy` | `policy`, `version`, `digest`, `enforcement`, `scope` and `gaps`. Only when this machine holds an org policy |

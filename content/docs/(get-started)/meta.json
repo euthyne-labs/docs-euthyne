@@ -1,5 +1,5 @@
 {
   "title": "Get started",
   "defaultOpen": true,
-  "pages": ["index", "quickstart"]
+  "pages": ["index", "quickstart", "agents"]
 }

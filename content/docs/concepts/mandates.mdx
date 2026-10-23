@@ -7,7 +7,7 @@ A receipt shows what an agent did. A mandate shows what it was allowed to do at 
 
 ## The session mandate
 
-A session mandate is the permission config in force for one agent session, as the harness itself defines it. Nobody writes it by hand. The CLI captures it from Claude Code's own settings when the session starts.
+A session mandate is the permission config in force for one agent session, as the harness itself defines it. Nobody writes it by hand. The CLI captures it from the agent's own settings when the session starts. The list below is for Claude Code.
 
 It holds:
 
@@ -20,13 +20,13 @@ It holds:
 
 Only these permission keys are copied. The `env` blocks, API keys and key helpers in your settings are never read into the mandate, and neither are MCP server commands, URLs, headers or environment. Each settings file the CLI reads is referenced by a salted hash, never a plain one, because settings files can hold secrets.
 
-Mandates are captured for Claude Code today. Codex, GitHub Copilot CLI and Cursor are planned.
+Other agents capture what their settings expose: Codex its approval policy, sandbox and execpolicy rules, Cursor the `cursor-agent` allow and deny lists, Gemini CLI its tool lists, Grok Build its permission rules, OpenCode and Antigravity their rules as text. Copilot CLI, Devin Desktop and Hermes carry a mandate with no rules read yet, so their checks read `unknown`. See [Supported agents](/docs/agents).
 
 ## Signed
 
 A mandate is a W3C Verifiable Credential 2.0, secured with a Data Integrity proof (`eddsa-jcs-2022`). It is issued by the session key, which your device key certifies, which Euthyne binds to you and your organization.
 
-The session key signs as a witness of the config in force. The mandate does not grant anything. Claude Code enforces its own settings, and the mandate records what they were.
+The session key signs as a witness of the config in force. The mandate does not grant anything. The agent enforces its own settings, and the mandate records what they were.
 
 ## The first log entry
 
@@ -34,7 +34,7 @@ At the first hook of a session, the CLI signs version 1 of the mandate and saves
 
 [`euthyne verify`](/docs/cli/verify) checks this. If a mandate was logged after the action, its row reads "This mandate was recorded after the action". That row is reported on its own and does not change the receipt's verdict.
 
-Once the log is timestamped independently, the timestamp will also prove the mandate existed by that time. Independent timestamps are planned.
+Once the log is timestamped independently, the timestamp also proves the mandate existed by that time.
 
 ## Versions
 
@@ -58,9 +58,11 @@ A check is evidence, not a verdict on the agent. It records what Euthyne saw.
 
 ## Observe and flag
 
-Euthyne never blocks an action, a commit or a merge. The hooks do not use `PreToolUse`, so they can never stop a tool call. An action outside the mandate is recorded as such, and that is all.
+The mandate never blocks anything. An action outside it is recorded as such, and that is all. Recording never blocks either: without an org policy, the hooks write nothing to the agent's context and never stop a tool call, a commit or a merge.
 
-Agents never see their mandate. The hooks write nothing to the agent's context, and the planned MCP tools will never return mandates or checks. The agent behaves the same with Euthyne as without it.
+Blocking is opt-in, through an [org policy](/docs/concepts/policy) your organization signs and enforces, and only for Claude Code and Codex.
+
+Agents never see their mandate. The planned MCP tools will never return mandates or checks either.
 
 You can see yours. [`euthyne mandate show`](/docs/cli/mandate) prints every version of a session's mandate on your machine.
 
@@ -72,11 +74,7 @@ It is reserved so the format stays stable when payment capture arrives. Then a p
 
 ## Org policy
 
-<Callout title="Planned">Not built yet.</Callout>
-
-An org policy will add your organization's own rules on top of each harness's config: commands, files, web domains, MCP servers and tools, permission modes. It will be a signed credential too, issued with a key your organization holds, not Euthyne. Each save will be a new version, with its history kept.
-
-Actions outside the policy will be flagged and will raise an alert. Nothing will be blocked.
+An org policy adds your organization's own rules on top of each agent's config. It is a signed credential too, issued with a key your organization holds, not Euthyne, and each publish is a new version. It starts in dry run and can be switched to enforce. See [Org policy](/docs/concepts/policy).
 
 ## Who sees it
 

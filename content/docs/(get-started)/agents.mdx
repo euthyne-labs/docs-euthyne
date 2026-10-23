@@ -1,0 +1,129 @@
+---
+title: Supported agents
+description: Which coding agents Euthyne records, where their hooks go, and which ones an org policy can block.
+---
+
+<Callout title="Preview">Agents change their hook formats often. Details may change.</Callout>
+
+Euthyne records ten coding agents through their own hooks. Each one is set up with [`euthyne init --agent <name>`](/docs/cli/init), and every one gives the same signed receipts, the same consent and the same [enrolled repositories](/docs/cli/init#which-repositories-are-recorded).
+
+| Agent | `--agent` | Mandate rules | Tokens and cost | Org policy |
+| --- | --- | --- | --- | --- |
+| Claude Code | `claude-code` (default) | Checked | Tokens and cost | Enforced |
+| Codex | `codex` | Captured, execpolicy rules as text | Tokens | Enforced, fails open on timeout |
+| Cursor | `cursor` | Captured as text | None | Recorded only |
+| GitHub Copilot CLI | `copilot` | Not read yet | None | Recorded only |
+| Gemini CLI | `gemini-cli` | Bare tool names checked | Tokens | Recorded only |
+| Grok Build | `grok-build` | Captured, partly checked | Tokens and cost | Recorded only |
+| OpenCode | `opencode` | Captured as text | Tokens and cost | Recorded only |
+| Antigravity | `antigravity` | Captured as text | Tokens | Recorded only |
+| Devin Desktop | `devin-desktop` | Not read yet | None | Recorded only |
+| Hermes Agent | `hermes` | Config hash only | None | Recorded only |
+
+"Recorded only" means Euthyne signs a receipt for every action and never blocks one, even when your org enforces a [policy](/docs/concepts/policy). Rules captured as text, or not read, give checks of `unknown` in the [mandate](/docs/concepts/mandates).
+
+Record several agents at once by repeating the flag:
+
+```bash
+euthyne init --agent claude-code --agent codex
+```
+
+Remove one agent's hooks with [`euthyne uninstall --agent <name>`](/docs/cli/uninstall). [`euthyne status`](/docs/cli/status) shows each agent as recording, waiting for its first event, or waiting for you to trust its hooks.
+
+## Claude Code
+
+```bash
+euthyne init
+```
+
+Hooks go in `.claude/settings.local.json`, kept out of git, or in `~/.claude/settings.json` with `--hooks user`. Ten events, each running `euthyne hook claude-code`: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `PermissionDenied`, `SubagentStart`, `SubagentStop`, `Stop` and `SessionEnd`.
+
+The mandate holds the permission mode, the allow, ask and deny rules, MCP servers and sandbox, and each action is checked against it. Tokens and cost come from Claude Code's telemetry, if you agree at setup. With an enforced org policy, `PreToolUse` decides each tool call, and it is installed with `onFailure: "block"` so a crash or timeout blocks the call too.
+
+## Codex
+
+```bash
+euthyne init --agent codex
+```
+
+Hooks go in `.codex/hooks.json`, or `~/.codex/hooks.json` with `--hooks user`. Ten events, each running `euthyne hook codex`: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PermissionRequest`, `SubagentStart`, `SubagentStop`, `Stop`, `Interrupt` and `SessionEnd`.
+
+Codex runs a new hook only once you trust it. Start `codex` in the repository, open `/hooks` and trust the Euthyne hooks. `codex exec` skips hooks you have not trusted.
+
+The mandate holds the approval policy, sandbox mode, writable roots, network access, MCP servers and your execpolicy rules, kept as text. Tokens come from the Codex session file. Codex reports no cost. With an enforced org policy, `PreToolUse` decides each Bash, `apply_patch` and MCP call. Codex hooks cannot ask, so an ask rule denies. Codex runs the call anyway if the hook times out, crashes or is not trusted yet.
+
+## Cursor
+
+```bash
+euthyne init --agent cursor
+```
+
+Hooks go in `.cursor/hooks.json`, or `~/.cursor/hooks.json` with `--hooks user`. The Cursor editor and the `cursor-agent` CLI both run them. Seven events, each running `euthyne hook cursor`: `sessionStart`, `beforeSubmitPrompt`, `postToolUse`, `postToolUseFailure`, `subagentStop`, `stop` and `sessionEnd`. Cursor runs project hooks once you trust the workspace, or with `--trust` in a headless `cursor-agent` run.
+
+Cursor also runs your Claude Code hooks. The Claude Code hook recognizes Cursor's events and skips them, so each action is recorded once.
+
+## GitHub Copilot CLI
+
+```bash
+euthyne init --agent copilot
+```
+
+Hooks go in `.github/hooks/euthyne.json`, kept out of git, or `~/.copilot/hooks/euthyne.json` with `--hooks user`. Eight events, each running `euthyne hook copilot <event>`: `sessionStart`, `userPromptSubmitted`, `postToolUse`, `postToolUseFailure`, `subagentStart`, `subagentStop`, `agentStop` and `sessionEnd`. Copilot CLI loads hooks when it starts, and repository hooks only in a folder you trusted, so restart `copilot` in the repository.
+
+Copilot CLI does not pass the model, tokens or cost to hooks, so receipts name the model as unknown.
+
+## Gemini CLI
+
+```bash
+euthyne init --agent gemini-cli
+```
+
+Hooks go in `.gemini/settings.json`, or `~/.gemini/settings.json` with `--hooks user`. Five events, each running `euthyne hook gemini-cli`: `SessionStart`, `BeforeAgent`, `AfterTool`, `AfterAgent` and `SessionEnd`. Start `gemini` at the repository root, in a folder you trust.
+
+The mandate holds the `tools.allowed`, `tools.exclude` and `tools.confirmationRequired` lists and MCP servers. Bare tool names are checked. Tokens come from the session file. Gemini CLI reports no cost.
+
+## Grok Build
+
+```bash
+euthyne init --agent grok-build --hooks user
+```
+
+Hooks go in `~/.grok/hooks/euthyne.json` with `--hooks user`, which runs without a trust step, or `.grok/hooks/euthyne.json` with `--hooks repo`, which runs once you trust the folder with `/hooks-trust`. Eleven events, each running `euthyne hook grok-build`: `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `PostToolUseFailure`, `PermissionDenied`, `SubagentStart`, `SubagentStop`, `Stop`, `StopFailure`, `StopCancelled` and `SessionEnd`.
+
+Grok Build runs hooks fail-open. If a hook times out or crashes, the agent carries on and that event has no receipt. Euthyne gives each hook 30 seconds.
+
+## OpenCode
+
+```bash
+euthyne init --agent opencode
+```
+
+`init` writes a small plugin to `.opencode/plugins/euthyne.js`, or `~/.config/opencode/plugins/euthyne.js` with `--hooks user`. It pipes each OpenCode event to `euthyne hook opencode`. OpenCode loads plugins when it starts, so restart it.
+
+The mandate keeps the permission rules and MCP servers from `opencode.json` as text. Tokens and cost come from OpenCode itself.
+
+## Antigravity
+
+```bash
+euthyne init --agent antigravity
+```
+
+Hooks go in `.agents/hooks.json`, kept out of git, or the Antigravity user hooks file with `--hooks user`. The Antigravity CLI, app and IDE all run them. Three events, under a hook named `euthyne`, each running `euthyne hook antigravity <event>`: `SessionStart`, `PostToolUse` and `Stop`. Antigravity hooks carry no prompt and no session end, so neither is recorded.
+
+## Devin Desktop
+
+```bash
+euthyne init --agent devin-desktop
+```
+
+Devin Desktop is the editor formerly called Windsurf. Hooks go in `.devin/hooks.json`, or `~/.codeium/windsurf/hooks.json` with `--hooks user`, with the full path to `euthyne`. Six Cascade events, each running `euthyne hook devin-desktop`: `pre_user_prompt`, `post_read_code`, `post_write_code`, `post_run_command`, `post_mcp_tool_use` and `post_cascade_response`. Devin Desktop runs them in trusted workspaces only, never in Restricted Mode.
+
+Cascade has no session start or end hook. A session is one Cascade conversation.
+
+## Hermes Agent
+
+```bash
+euthyne init --agent hermes
+```
+
+Hermes reads hooks only from its own config, so they always go in `~/.hermes/config.yaml`, or `$HERMES_HOME/config.yaml`, whatever `--hooks` says. Seven events, each running `euthyne hook hermes`: `on_session_start`, `pre_llm_call`, `post_tool_call`, `subagent_start`, `subagent_stop`, `on_session_end` and `on_session_finalize`. Hermes runs a new hook once you approve it: start `hermes chat` and approve each Euthyne hook, or run `hermes --accept-hooks chat` once.

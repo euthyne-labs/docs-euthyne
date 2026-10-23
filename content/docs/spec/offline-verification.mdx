@@ -19,7 +19,7 @@ euthyne verify --last
 - A file path verifies a saved receipt bundle.
 - `--last` verifies your most recent synced receipt.
 - `--json` prints the verdict as JSON.
-- Checking the anchor against your own node is planned.
+- `--anchor-node` checks the anchor against your own node instead of two public sources, and `--offline` skips that check.
 
 The command exits with `0` when the receipt is genuine, `1` when a check fails, and `2` when it cannot check.
 
@@ -42,7 +42,7 @@ A bundle grows as proofs arrive:
 1. The signed envelope.
 2. The inclusion proof and the signed checkpoint.
 3. The mandate the receipt cites, with its own inclusion proof.
-4. The anchored checkpoint, with its consistency proof and OpenTimestamps proof (planned).
+4. The anchored checkpoint, with its consistency proof and OpenTimestamps proof.
 
 The bundle format is not specified yet.
 

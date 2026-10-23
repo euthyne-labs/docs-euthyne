@@ -1,5 +1,5 @@
 {
   "title": "Concepts",
   "defaultOpen": true,
-  "pages": ["receipts", "sessions", "mandates", "changes", "trust-levels", "what-we-store", "detected-signals"]
+  "pages": ["receipts", "sessions", "mandates", "policy", "changes", "trust-levels", "what-we-store", "detected-signals"]
 }

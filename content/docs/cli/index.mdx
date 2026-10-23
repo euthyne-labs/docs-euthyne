@@ -1,13 +1,13 @@
 ---
 title: Overview
-description: How to install euthyne, and its commands, built and planned.
+description: How to install euthyne, and every command it has.
 ---
 
 <Callout title="Preview">
   The CLI is new. Commands, flags and output may change.
 </Callout>
 
-`euthyne` is a single binary. It records what Claude Code does through hooks, signs receipts on your machine, uploads them, and verifies them offline. It runs on macOS and Linux, on amd64 and arm64.
+`euthyne` is a single binary. It records what your coding agents do through their hooks, signs receipts on your machine, uploads them, and verifies them offline. With an org policy, it also decides Claude Code and Codex tool calls before they run. See [Supported agents](/docs/agents). It runs on macOS and Linux, on amd64 and arm64.
 
 Install it with Homebrew:
 
@@ -29,17 +29,22 @@ The script downloads the build for your system from the [`euthyne-labs/euthyne` 
 
 | Command | What it does |
 | --- | --- |
-| [`init`](/docs/cli/init) | Asks for your consent, signs this machine in, enrols the current repository, installs the hooks and, if you agree, the telemetry lines for tokens and cost |
+| [`init`](/docs/cli/init) | Asks for your consent, signs this machine in, enrols the current repository, installs the hooks for the agents you pick and, if you agree, the Claude Code telemetry lines for tokens and cost |
 | [`login`](/docs/cli/login) | Signs this machine in through your browser |
-| [`status`](/docs/cli/status) | Shows what this machine records, the upload queue, the last sync and hook errors |
-| [`hook`](/docs/cli/hook) | Called by Claude Code on each hook event. Signs one receipt |
-| [`sync`](/docs/cli/sync) | Uploads queued mandates and receipts, then saves their log proofs |
-| [`verify`](/docs/cli/verify) | Checks a receipt bundle offline |
+| [`status`](/docs/cli/status) | Shows what this machine records, each agent, the upload queue, the last sync, hook errors and policy gaps |
+| [`hook`](/docs/cli/hook) | Called by an agent on each hook event. Signs one receipt, and decides Claude Code and Codex tool calls under an org policy |
+| [`sync`](/docs/cli/sync) | Uploads queued mandates and receipts, saves their log proofs and refreshes the org policy |
+| [`verify`](/docs/cli/verify) | Checks a receipt bundle, or replays its policy decision |
 | [`mandate show`](/docs/cli/mandate) | Prints the mandates captured for a session |
+| [`policy`](/docs/cli/policy) | Creates the org key, publishes, revokes and shows the org policy, and trusts a new org key |
 | [`reveal`](/docs/cli/reveal) | Opens one committed field of a receipt for an auditor |
 | [`uninstall`](/docs/cli/uninstall) | Removes exactly what `init` wrote |
+| `completion <shell>` | Prints a shell completion script for `bash`, `zsh`, `fish` or `powershell` |
+| `help [command]` | Prints the help of a command, like `--help` |
 
-Planned, not built yet: [`keys`](/docs/cli/keys) and [`mcp`](/docs/cli/mcp).
+The hooks also start `euthyne otel`, the local receiver for Claude Code's tokens and cost. It is hidden from the help and you never run it yourself. See [Tokens and cost](/docs/cli/init#tokens-and-cost).
+
+Soon, not built yet: [`keys`](/docs/cli/keys) and [`mcp`](/docs/cli/mcp). There is no such command in the CLI today.
 
 Run `euthyne --help` or `euthyne <command> --help` for the exact usage of your build.
 
@@ -53,10 +58,10 @@ Every command takes these flags.
 | `--keystore` | `EUTHYNE_KEYSTORE` | Where device keys live: `keychain` (default) or `file` |
 | `--log-key` | `EUTHYNE_LOG_KEY` | A log verifier key to trust instead of the one built into the binary. The CLI warns when you override it |
 
-The CLI talks to `https://api.euthyne.com`. Once this machine is enrolled, it uses the server it enrolled with. `init`, `login`, `sync` and `verify` take `--server`, or `EUTHYNE_SERVER`, only to use another server.
+The CLI talks to `https://api.euthyne.com`. Once this machine is enrolled, it uses the server it enrolled with. `init`, `login`, `sync`, `verify`, `policy publish`, `policy revoke` and `policy show` take `--server`, or `EUTHYNE_SERVER`, only to use another server.
 
 ## Keys and state
 
-The device key, the commitment key and the device token live in your OS keychain. With `--keystore file`, they go to files under `<home>/keys` that only you can read.
+The device key, the commitment key, the device token and the pinned org policy key live in your OS keychain. On an admin's machine, so does the org key. With `--keystore file`, they go to files under `<home>/keys` that only you can read.
 
-The state directory holds the CLI's config, the upload queue, saved receipt bundles, the mandates of your sessions and the checkpoints this machine has seen. It is created readable by you only.
+The state directory holds the CLI's config, the upload queue, saved receipt bundles, the mandates of your sessions, the cached org policy and the checkpoints this machine has seen. The [built-in policy rules](/docs/concepts/policy#built-in-rules) keep agents out of it. It is created readable by you only.
