@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import { Card, Cards } from 'fumadocs-ui/components/card';
+
+export const metadata: Metadata = {
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default function HomePage() {
   return (
