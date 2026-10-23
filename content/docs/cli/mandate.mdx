@@ -1,0 +1,48 @@
+---
+title: euthyne mandate show
+description: Print the mandates captured for a session.
+---
+
+<Callout title="Preview">Flags may change.</Callout>
+
+```bash
+euthyne mandate show
+euthyne mandate show --session <session-id>
+```
+
+Prints every version of a session's [mandate](/docs/concepts/mandates): the agent's permission config in force, signed by the session key. For Claude Code that is the mode, the allow, ask and deny rules, MCP servers and sandbox. For Codex, the approval policy, sandbox mode, execpolicy rules and MCP servers. For Cursor, the `cursor-agent` allow and deny lists and MCP servers. For OpenCode, the permission rules and MCP servers from `opencode.json`, kept as text. For Gemini CLI, the tool rules and MCP servers in its `settings.json` files. See [Supported agents](/docs/agents) for the rest. By default it shows the session with the newest mandate on this machine.
+
+It reads from this machine only. Agents never call it, and nothing it prints reaches an agent.
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--session <id>` | The agent session ID to show |
+| `--json` | Prints each version with its signed credential, digest and log index |
+
+## Output
+
+```text
+Session 5f2c… · org acme
+✓ v1 3f9a0c1b2d4e mode default (ask) · 09:14:02 logged at index 790
+✓ v2 81be77d0a9c3 mode acceptEdits (accept_edits) · 09:31:40 not uploaded yet
+
+In force: v2 urn:euthyne:mandate:mdt_01K7…, valid until 2026-10-13T09:14:02Z
+  allow (2)
+        Bash(npm run test:*)
+        Read(./src/**)
+  ask   (1)
+        Bash(git push:*)
+  deny  (1)
+        Read(./.env)
+  mcp   github (stdio, project)
+  dirs  .
+  sandbox off · spend reserved, empty
+```
+
+Each version line shows the short digest, the permission mode as Claude Code names it and its normalized form, the time it was signed, and whether it is in the log yet. A version the server rejected is marked with `✗` and the reason.
+
+## Soon
+
+- `mandate diff <a> <b>`, to compare two versions.

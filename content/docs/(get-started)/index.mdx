@@ -4,11 +4,10 @@ description: What Euthyne records, what it can prove, and what it cannot.
 ---
 
 <Callout title="Preview">
-  The CLI, the API and the dashboard are not released yet. These pages describe the planned design.
-  Details may change before release.
+  Euthyne is new. Anything marked Soon or planned is not built yet, and details may change.
 </Callout>
 
-Euthyne records what coding agents do in your repositories. Each agent action becomes a signed record, called a receipt. When a pull request merges, Euthyne links it to the agent sessions behind it and to the people who approved it.
+Euthyne records what coding agents do in your repositories, and what they were allowed to do. Each agent action becomes a signed record, called a receipt. Each session's permissions become a signed mandate. When a pull request merges, Euthyne links it to the agent sessions behind it and to the people who approved it.
 
 Anyone with a receipt can check it. They do not need a Euthyne account, and they do not need to trust Euthyne's servers.
 
@@ -16,32 +15,34 @@ Anyone with a receipt can check it. They do not need a Euthyne account, and they
 
 - Which agent changed this file, and with which model?
 - Who launched the agent session?
+- What was the agent allowed to do, and was this action inside it?
+- How many tokens did the session use, and what did it cost?
 - Which pull request carried the change, and who approved it?
 - Was the approver someone other than the author and the person who launched the agent?
 
 ## How it works
 
-1. You run `euthyne init` in a repository. It signs you in, creates a key for your machine, and installs hooks in your agent harness.
-2. Each time the agent uses a tool, the hook signs a receipt on your machine. The receipt holds metadata in clear and the content as salted hashes.
-3. The CLI uploads receipts in the background. Euthyne adds each one to an append-only public log.
+1. You run `euthyne init` in a repository. It shows what is recorded and asks you to accept, creates a key for your machine, signs it in, and installs hooks in your coding agents. Only the repositories you enrol are recorded.
+2. When a session starts, the CLI signs its [mandate](/docs/concepts/mandates): the permission config in force. Each time the agent uses a tool, the hook signs a receipt on your machine, with a check against that mandate. The receipt holds metadata in clear and the content as salted hashes.
+3. The CLI uploads the mandates, then the receipts, in the background. Euthyne adds each one to an append-only public log.
 4. When a pull request merges, Euthyne writes a change receipt. It lists the linked sessions, the approvals and the CI result.
 5. Anyone can verify a receipt in the browser, or offline with `euthyne verify`.
 
 ## What it supports first
 
-- Agent harnesses: Claude Code and Codex. Other harnesses are not supported yet.
+- Agents: Claude Code, Codex, Cursor, GitHub Copilot CLI, Gemini CLI, Grok Build, OpenCode, Antigravity, Devin Desktop and Hermes Agent. See [Supported agents](/docs/agents).
 - Git hosts: GitHub. GitLab support is planned.
 
 ## What it does not do
 
 - It does not store your prompts, code, diffs or command output. They leave your machine only as salted hashes. See [What we store](/docs/concepts/what-we-store).
-- It does not block or approve anything. It records what happened.
+- Recording never blocks or approves anything. It records what happened, and whether each action was inside the mandate. Agents never see their mandate. Blocking is opt-in: your organization can sign and enforce an [org policy](/docs/concepts/policy), which today blocks Claude Code and Codex tool calls only.
 - It cannot prove that every agent action was captured. Capture runs through hooks, and a developer can turn hooks off. Euthyne flags merges that have no receipts, but it cannot see agent work that never reached a hook or a pull request.
 - A receipt shows that an action was recorded and signed. It does not show that the action was correct or safe.
 
 ## Next
 
 <Cards>
-  <Card title="Quickstart" href="/docs/quickstart" description="The planned first run, from install to first receipt." />
+  <Card title="Quickstart" href="/docs/quickstart" description="The first run, from setup to a verified receipt." />
   <Card title="Receipts" href="/docs/concepts/receipts" description="What a receipt contains and what it proves." />
 </Cards>

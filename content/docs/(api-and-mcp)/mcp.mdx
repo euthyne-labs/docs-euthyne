@@ -3,13 +3,13 @@ title: MCP
 description: Ask your agent who changed what, through a read-only MCP server.
 ---
 
-<Callout title="Coming soon">
-  `euthyne mcp` is not released yet. This page describes the planned server.
+<Callout title="Soon">
+  `euthyne mcp` is not built yet. This page describes the planned server.
 </Callout>
 
 `euthyne mcp` runs an MCP server over stdio. It lets an agent answer questions like "which agent changed `src/app/page.tsx`, and who approved it?" from your Euthyne data.
 
-Every tool is read-only and marked with `readOnlyHint`. Capture never goes through MCP. It stays in hooks.
+Every tool is read-only and marked with `readOnlyHint`. Capture never goes through MCP. It stays in hooks. No tool returns mandates or check results, because agents never see their mandate.
 
 ## Setup
 

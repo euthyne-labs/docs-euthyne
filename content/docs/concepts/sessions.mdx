@@ -3,7 +3,7 @@ title: Sessions and the forensic path
 description: How receipts group into sessions, and how you trace a change back to each action.
 ---
 
-A session is one run of an agent harness on one device. It starts when Claude Code or Codex opens a session and ends when the session closes. Every receipt belongs to one session.
+A session is one run of an agent harness on one device. It starts when the agent opens a session and ends when the session closes. Every receipt belongs to one session.
 
 ## The session chain
 
@@ -18,12 +18,12 @@ Together they form a chain. If a receipt is dropped, inserted or reordered, the 
 ## Inside a session
 
 - **Subagents.** Actions from a Claude Code subagent carry the subagent's ID and type, so they are attributed inside the parent session.
-- **Model changes.** A model switch during the session is recorded.
-- **Turn ends.** At the end of each agent turn, the CLI records `HEAD` and the blob hashes of the files the agent touched. Euthyne uses these to link the session to a pull request later.
+- **Mandate.** The session's first log entry is its [mandate](/docs/concepts/mandates), the permission config in force. A change of mode or settings adds a new version.
+- **Turn ends.** At the end of each agent turn, the CLI records `HEAD`. Each edit receipt already carries the blob hash of the file after the edit. Euthyne will use these to link the session to a pull request.
 
 ## Session keys
 
-When a session starts, the CLI reads your device key from the keychain once and uses it to certify a session key. The session key is valid for 24 hours at most and is discarded when the session ends. Receipts in the session are signed with it. A verifier checks both signatures.
+When a session starts, the CLI reads your device key from the keychain once and uses it to certify a session key. The session key is valid for 24 hours at most. It is discarded when the session ends, or after the final usage receipt when telemetry is on. Receipts in the session are signed with it. A verifier checks both signatures.
 
 ## The forensic path
 

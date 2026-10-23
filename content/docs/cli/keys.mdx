@@ -1,14 +1,16 @@
 ---
 title: euthyne keys
-description: Manage the device key.
+description: Soon. Manage the device key.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Soon">Not built yet. The CLI has no `keys` command today: device keys are created by `init` and replaced by `uninstall --all`, and the org policy key is managed with [`euthyne policy key`](/docs/cli/policy#euthyne-policy-key).</Callout>
 
 ```bash
 euthyne keys rotate
 ```
 
-`rotate` creates a new device key. The old key signs the new one, a key event is written to the log, and Euthyne issues a new credential for the new key.
+`rotate` will create a new device key. The old key signs the new one, a key event is written to the log, and Euthyne issues a new credential for the new key.
 
-Revoking a key is done from the dashboard. Revocation is logged at a given log index. Later receipts signed with that key are rejected and fail verification. Earlier receipts stay valid, with a note.
+`export-commitment-key` will let your organization keep its own copy of the commitment key, encrypted to a recipient you choose. Euthyne never holds it.
+
+Revoking a key will be done from the dashboard. Revocation is logged at a given log index. Later receipts signed with that key are rejected and fail verification. Earlier receipts stay valid, with a note.

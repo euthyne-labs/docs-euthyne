@@ -1,16 +1,33 @@
 ---
 title: euthyne login
-description: Sign in from the terminal.
+description: Sign this machine in through your browser.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Flags may change.</Callout>
 
 ```bash
 euthyne login
 ```
 
-Signs you in with the OAuth device flow (RFC 8628). The CLI shows a code and a link. You confirm the code in your browser with your GitHub account.
+It signs this machine in with a device code. The CLI shows a code and opens `app.euthyne.com` in your browser. Type the code there, approve, and pick the organization. The CLI then enrols this machine's device key with that organization. The code expires after 15 minutes.
 
-The device token is stored in your OS keychain. It can only upload receipts for your own device.
+The device token is stored in your OS keychain, or with `--keystore file` in a file only you can read.
 
-[`init`](/docs/cli/init) runs `login` for you when needed.
+[`init`](/docs/cli/init) signs you in the same way on its first run, so you rarely need `login` on its own.
+
+`login` records nothing. Recording starts only once you accept the terms with `init`. The acceptance is per organization, so after you sign in to another organization, run `init` again.
+
+## Flags
+
+| Flag | Effect |
+| --- | --- |
+| `--server <url>` | Euthyne API base URL. Also `EUTHYNE_SERVER`. Defaults to the server this machine enrolled with, else `https://api.euthyne.com` |
+| `--no-browser` | Prints the sign-in link instead of opening a browser |
+
+## Output
+
+```text
+Type this code in your browser: KMTZ-QRWB
+Opened https://app.euthyne.com/device. Waiting for your approval…
+✓ Device sha256:3f9a… signed in to org acme as euthyne:usr_01K9…
+```

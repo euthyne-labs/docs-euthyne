@@ -50,15 +50,22 @@ Everything in the predicate is in clear.
 | `t` | Device time, in milliseconds since the Unix epoch |
 | `org` | Organization ID |
 | `device` | Fingerprint of the device key |
-| `human` | Forge account of the human, for example `github:12345` |
-| `harness` | Harness name and version |
-| `model` | Model ID, with `source`: `hook`, `transcript` or `unknown` |
-| `session` | `id`, `seq`, and `prev`, the digest of the previous receipt in the session |
+| `human` | Euthyne user ID of the human, for example `euthyne:usr_01K9…` |
+| `harness` | Harness name, for example `claude-code` |
+| `model` | Model ID, with `source`: `hook` or `unknown` |
+| `agent` | Subagent ID and type, when a subagent acted |
+| `session` | `id`, `seq`, `prev` (the digest of the previous receipt in the session) and `cert` (the session key certificate) |
 | `event` | Hook event name, for example `PostToolUse` |
-| `tool` | Tool name, `use_id`, outcome (`ok`, `error` or `denied`) and duration |
+| `event_type` | Normalized event type, for example `tool.post` |
+| `tool` | Tool name and `kind`, `use_id`, outcome (`ok`, `error`, `interrupted` or `denied`), duration, and `mcp` (`{server, tool}`) for MCP tools |
+| `web` | `kind` (`fetch` or `search`) and, for a fetch, the `domain` |
+| `permission_mode` | `raw`, as the harness names it, and `normalized` |
+| `mandate` | `id`, `digest` and `version` of the [mandate](/docs/concepts/mandates) in force |
+| `check` | `result` (`in`, `out` or `unknown`), the matched `rule`, `source`, and `reason` when unknown |
+| `usage` | Tokens in, out, cache read and cache write, `cost_usd`, `requests`, `api_duration_ms` since the previous receipt, with `totals` |
 | `repo` | Remote, branch and `HEAD` |
 | `files` | Paths, each with its git blob SHA after the action |
-| `commit` | The new commit SHA, after a `git commit` |
+| `commit` | The new `HEAD`, when it moved during the action |
 | `salt_key` | ID and epoch of the commitment key used for the salts |
 
 The nested structure of each field is not final.
@@ -76,13 +83,17 @@ These Claude Code hook events produce receipts or receipt data:
 | `SessionStart` | Session open, repository, `HEAD`, model if present |
 | `UserPromptSubmit` | Prompt commitment |
 | `PostToolUse` | The action receipt |
-| `PostToolUseFailure`, `PermissionDenied` | Outcome `error` or `denied` |
+| `PostToolUseFailure` | Outcome `error`, or `interrupted` |
+| `PermissionDenied` | Outcome `denied` |
 | `SubagentStart`, `SubagentStop` | Subagent attribution |
-| `PostModelSwitch` | Model change |
-| `Stop` | Turn end: `HEAD` and blob SHAs of touched files |
-| `SessionEnd` | Local queue write only |
+| `Stop` | Turn end: `HEAD` |
+| `SessionEnd` | Session close |
 
-Codex uses the same event names. Its tool hooks cover shell commands, `apply_patch`, MCP tools and local function tools. They do not cover tools hosted by the provider, such as web search.
+The CLI also signs a `UsageSummary` receipt when token usage arrives after a session ended.
+
+The other agents map their own events onto the same receipt. See [Supported agents](/docs/agents) for each one's events. Codex uses the same event names as Claude Code. Its tool hooks cover shell commands, `apply_patch`, MCP tools and local function tools. They do not cover tools hosted by the provider, such as web search.
+
+A `PreToolUse` receipt decided by an [org policy](/docs/concepts/policy) also carries `policy` (the version's ID, digest, version, status list index, when its status was checked, and the pinned issuer) and `decision` (effect, mode, tier, rule, source, cause and evaluator).
 
 ## Keys
 

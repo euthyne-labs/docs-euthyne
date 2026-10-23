@@ -21,7 +21,7 @@ export default function HomePage() {
         <Card
           title="Get started"
           href="/docs"
-          description="What Euthyne records, what it proves, and the planned first run."
+          description="What Euthyne records, what it proves, and the first run."
         />
         <Card
           title="Concepts"
@@ -36,7 +36,7 @@ export default function HomePage() {
         <Card
           title="CLI reference"
           href="/docs/cli"
-          description="The planned euthyne commands, from init to verify."
+          description="The euthyne commands, from init to verify."
         />
       </Cards>
     </main>

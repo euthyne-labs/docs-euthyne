@@ -1,0 +1,151 @@
+---
+title: Org policy
+description: Your organization's own rules, signed with a key you hold and decided on each machine before a tool call runs.
+---
+
+<Callout title="Preview">
+  Org policies are new. Enforcement covers Claude Code and Codex. Every other agent is recorded only.
+</Callout>
+
+A [mandate](/docs/concepts/mandates) records what an agent's own settings allowed. An org policy adds your organization's rules on top, and can block a tool call before it runs.
+
+## Signed by your org, not by Euthyne
+
+An org policy is a W3C Verifiable Credential 2.0 with a Data Integrity proof (`eddsa-jcs-2022`), signed with an Ed25519 org key. An admin creates that key with [`euthyne policy key`](/docs/cli/policy#euthyne-policy-key). It stays in that machine's keychain. Euthyne never sees the private key, so Euthyne cannot write or change your policy.
+
+Each publish is a new version that names the digest of the one before. The server logs every version before any device can fetch it, so nobody can quietly backdate a looser one. Publishing needs an org owner or admin, on the Team or Company plan.
+
+## Decided on your machine
+
+Every enrolled device fetches the signed policy, checks its signature and its revocation status, and caches it. The hook then decides each tool call locally, from the cache, with no network call. [`euthyne sync`](/docs/cli/sync), which the hooks start in the background, refreshes it. So does [`euthyne policy show --refresh`](/docs/cli/policy#euthyne-policy-show).
+
+Every decision is signed into the receipt of that call: the effect, the rule that matched, the mode, and the policy version, digest and status list index it was decided with. [`euthyne verify --replay`](/docs/cli/verify#replay-a-policy-decision) re-runs that decision offline against the same signed version, so anyone can check it was decided as the policy says.
+
+A device with no org policy decides nothing and blocks nothing. It only records.
+
+## Dry run, then enforce
+
+A policy starts in dry run. Each decision is signed into the receipt and nothing is blocked. [`euthyne policy show`](/docs/cli/policy#euthyne-policy-show) lists the latest decisions, with dry-run denials marked `would deny`. Once the results look right, set `"enforcement": "enforce"` and publish again.
+
+## The policy file
+
+```json
+{
+  "policy": "default",
+  "enforcement": "dry_run",
+  "onUndecidable": "deny",
+  "defaultEffect": "allow",
+  "rules": [
+    {"id": "no-push", "effect": "deny", "match": "Bash(git push:*)", "reason": "Pushes go through CI"},
+    {"id": "env-files", "effect": "deny", "match": "Read(./.env)", "reason": "Secrets stay out of agent context"},
+    {"id": "prod-db", "effect": "ask", "match": "mcp__prod-db", "reason": "Production data needs a human"}
+  ],
+  "grants": [
+    {"id": "contractors", "kind": "team", "members": ["github:jdoe"], "defaultEffect": "ask", "rules": []},
+    {"id": "reviewer-agent", "kind": "subagent", "agentTypes": ["code-reviewer"], "rules": [{"id": "reviewer-no-edit", "effect": "deny", "match": "Edit", "reason": "Reviewers do not edit"}]}
+  ]
+}
+```
+
+| Field | Values | Default |
+| --- | --- | --- |
+| `policy` | The policy's name. Versions of the same name chain together | Required |
+| `enforcement` | `dry_run` or `enforce` | `dry_run` |
+| `scope` | `enrolled-repos` or `all-sessions`. See [Scope](#scope) | `enrolled-repos` |
+| `onUndecidable` | `deny` or `allow`. See [When it cannot decide](#when-it-cannot-decide) | `deny` |
+| `defaultEffect` | What happens to a call no rule matches: `allow`, `ask` or `deny` | `allow` |
+| `rules` | Each with an `id`, an `effect` (`allow`, `ask` or `deny`), a `match` and an optional `reason` | None |
+| `grants` | Narrower rules for a team, a person or a subagent type | None |
+| `refreshSeconds` | How often devices refresh the policy | `900` (15 minutes) |
+| `graceSeconds` | How long a device keeps deciding with a policy it could not refresh, from 0 to 30 days | `86400` (24 hours) |
+| `validDays` | How long the signed version is valid, from 1 to 366 days | `90` |
+
+Unknown fields are refused.
+
+### Rules
+
+Rules use Claude Code's `Tool(pattern)` syntax for every agent: `Bash(git push:*)`, `Read(./.env)`, `Edit`, `mcp__server` or `mcp__server__tool`. `Mode(bypassPermissions)` asks or denies by permission mode.
+
+Deny wins over ask, and ask wins over allow. An agent that cannot ask, like Codex, gets a deny instead.
+
+Bash rules see through plain `NAME=value` assignments, quoting, and a fixed set of wrappers whose flags Euthyne models, such as `env`, `sudo`, `timeout`, `nice` and `sh -c`. Anything else in front of the command is undecidable: an unknown wrapper or flag, a redirection, `eval`, a variable or a glob as the command, or a shell reading stdin.
+
+### Grants
+
+A grant applies to members of a team or a person (`kind` `team` or `person`, with `members`), or to a subagent type (`kind` `subagent`, with `agentTypes`). Its rules are added on top of the org rules, and the strictest result wins. A grant can only narrow the policy, never widen it.
+
+## Scope
+
+With `enrolled-repos`, only sessions in enrolled repositories are decided. With `all-sessions`, sessions anywhere on an enrolled device are decided, as long as the hooks are installed for every project (`init --hooks user`). Receipts are still signed only in enrolled repositories. [`euthyne status`](/docs/cli/status) warns when the scope is `all-sessions` but an agent's hooks are per repository.
+
+## When it cannot decide
+
+An action is undecidable when its rule cannot be evaluated, for example the shell forms above. The whole policy is undecidable when the cached copy is missing, does not verify, has expired, or has not been refreshed within `refreshSeconds` plus `graceSeconds`.
+
+`onUndecidable` decides what happens then. The default is `deny`: fail closed. Set it to `allow` to let those calls through, and they are still signed with the reason.
+
+A device that held a policy and then lost its cache, its pin or its keychain denies every Claude Code and Codex tool call until it fetches a good one, whatever the policy said.
+
+An error inside the hook on a Claude Code or Codex `PreToolUse` event, or a payload it cannot read, is treated as undecidable too, so by default the hook fails closed.
+
+## Built-in rules
+
+Every policy carries rules no author can remove:
+
+| Rule | What it blocks |
+| --- | --- |
+| `builtin:state` | Reading or changing Euthyne's state directory, keys and policy cache, including through the OS keychain tools |
+| `builtin:settings` | Changing the agent's own hook settings, such as `.claude/settings.json`, `.codex/hooks.json` or `.cursor/hooks.json` |
+| `builtin:cli` | Running `euthyne` commands other than the read-only ones: `status`, `verify`, `mandate show`, `policy show`, `help` and `--version` |
+| `builtin:dynamic` | A command that builds what it runs or touches at run time, so Euthyne cannot rule out its own state or hook settings |
+
+They follow the policy's mode: they block in `enforce` and are only recorded in dry run.
+
+## What the agent sees
+
+On a block, the agent gets the harness's own deny, with one line naming the rule id and its reason. It never sees the policy itself.
+
+```text
+Blocked by organization policy rule no-push: Pushes go through CI
+Blocked by organization policy: this action could not be evaluated (not_decidable), so the policy fails closed
+Blocked by organization policy rule default: no rule allows this action
+Blocked by Euthyne rule builtin:settings: agents cannot change their own hook settings
+```
+
+For an `ask`, Claude Code asks you to confirm, with the line `Organization policy rule prod-db needs confirmation: Production data needs a human`. Codex cannot ask, so the same rule denies, and the line ends with `(Codex hooks cannot ask, so this is denied)`.
+
+Without an org policy, or in dry run, the hooks write nothing the agent can see.
+
+## Per agent
+
+| Agent | Policy |
+| --- | --- |
+| Claude Code | Enforced. The `PreToolUse` hook is installed with `onFailure: "block"`, so a crash or a timeout of the hook blocks the call too |
+| Codex | Enforced, fails open on timeout. Covers Bash, `apply_patch` and MCP calls. Codex runs the call anyway if the hook times out, crashes, or has not been trusted in `/hooks` yet |
+| Cursor, GitHub Copilot CLI, Gemini CLI, Grok Build, OpenCode, Antigravity, Devin Desktop, Hermes | Recorded only. No policy decision, nothing blocked |
+
+[`euthyne status`](/docs/cli/status) shows a policy gap when the Claude Code or Codex `PreToolUse` hook is missing or not fail-closed, and counts receipts that flag one.
+
+## Revocation
+
+Each version has an index in the org's Bitstring Status List (W3C), signed with the org key. Publishing a new version revokes the one before. [`euthyne policy revoke`](/docs/cli/policy#euthyne-policy-revoke) revokes the version in force, or any index, and revocation is final.
+
+Devices see it on their next refresh. A device whose policy in force is revoked denies every Claude Code and Codex tool call until a new version is published, whatever `onUndecidable` says.
+
+## Trusting the org key
+
+The first time a device fetches a policy, it pins the org key that signed it, and from then on it refuses a policy signed by any other key. Receipts name the pinned key and when it was trusted.
+
+When an admin moves to a new org key, they give each person the new `did:key` out of band, and each person runs [`euthyne policy trust <did:key>`](/docs/cli/policy#euthyne-policy-trust). Until the next refresh, tool calls are denied. Losing the org key means publishing under a new one, which devices refuse until they trust it.
+
+## Known gaps
+
+Policy decides what the agent asks its harness to do, at the moment it asks. It does not see everything:
+
+- **Scripts the agent writes, then runs.** The rule sees `./build.sh` or `python task.py`, not what is inside. An agent can write a script that runs `git push` and then run the script.
+- **Hard links.** Symlinks are resolved before a path is checked. A hard link to a protected file has another path, and nothing on disk ties it back.
+- **Changes outside the agent.** Anything you, another program or a non-hooked tool does is not decided or recorded. A developer can also remove the hooks or uninstall the CLI, and the receipts then stop.
+- **Codex timeouts.** Codex runs the call anyway when the hook times out, crashes or is not trusted.
+- **Agents other than Claude Code and Codex** are recorded, not decided.
+
+A policy is a guardrail on agent tool calls. It is not a sandbox.

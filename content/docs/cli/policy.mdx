@@ -1,0 +1,194 @@
+---
+title: euthyne policy
+description: Create, publish, revoke and inspect your org's signed agent policy.
+---
+
+<Callout title="Preview">Flags and output may change.</Callout>
+
+```bash
+# admins
+euthyne policy key
+euthyne policy publish policy.json
+euthyne policy revoke
+
+# everyone
+euthyne policy show --refresh
+euthyne policy trust did:key:z6Mk…
+```
+
+See [Org policy](/docs/concepts/policy) for what a policy is, how it decides and what it does not cover. Admins sign and publish. Everyone else only reads the policy in force on their machine, and trusts a new org key when an admin rotates it.
+
+The help below is the output of `euthyne policy <command> --help`, without the [global flags](/docs/cli#global-flags).
+
+```text
+An org policy is a W3C verifiable credential signed with the org key, which stays on the admin's machine. Each device
+caches the signed policy, checks its revocation status list on refresh, and decides every Claude Code and Codex tool
+call locally, offline, before it runs. A policy starts in dry run: decisions are signed into receipts and nothing is
+blocked. Set "enforcement": "enforce" to block. A blocked agent is told the rule id and its reason, never the policy.
+
+Admins: euthyne policy key, then euthyne policy publish policy.json, and euthyne policy revoke to withdraw a version.
+Everyone: euthyne policy show for the policy in force on this machine and its recent decisions. The device pins the
+org key on its first fetch and refuses any other until you run euthyne policy trust.
+
+USAGE
+
+  euthyne policy [command] [--flags]
+
+COMMANDS
+
+  key                              Create the org key on this machine, or print it
+  publish <policy.json> [--flags]  Sign a policy with the org key and publish it as the org's next version
+  revoke [--flags]                 Revoke the org policy version in force (or --index) through the status list
+  show [--flags]                   Print the org policy cached on this machine and its recent decisions
+  trust <did:key>                  Accept a new org key for the org policy on this machine
+```
+
+## euthyne policy key
+
+Creates the org key on the first run and prints its `did:key`. Later runs print the same key. Only the admin who signs policies needs it.
+
+```text
+Creates the org's Ed25519 policy key in this machine's keychain (or --keystore) and prints its did:key. Only an org
+admin needs it. Euthyne never sees the private key; losing it means publishing under a new key, which devices refuse
+until they are reset.
+
+USAGE
+
+  euthyne policy key [--flags]
+```
+
+```text
+✓ Created the org key did:key:z6Mk…
+```
+
+## euthyne policy publish
+
+Signs `policy.json` as the org's next version and uploads it with a re-signed status list. The server logs the credential before any device can fetch it. It needs an org owner or admin, on the Team or Company plan. The [policy file fields](/docs/concepts/policy#the-policy-file) are explained with the concept.
+
+```text
+Reads a policy file, signs it with the org key as the next version of the org policy (previous = the digest of the
+version on the server), re-signs the revocation status list, and uploads both. The server logs the credential before
+any device can fetch it. Example policy.json:
+
+  {
+    "policy": "default",
+    "enforcement": "dry_run",
+    "onUndecidable": "deny",
+    "defaultEffect": "allow",
+    "rules": [
+      {"id": "no-push", "effect": "deny", "match": "Bash(git push:*)", "reason": "Pushes go through CI"},
+      {"id": "env-files", "effect": "deny", "match": "Read(./.env)", "reason": "Secrets stay out of agent context"},
+      {"id": "prod-db", "effect": "ask", "match": "mcp__prod-db", "reason": "Production data needs a human"}
+    ],
+    "grants": [
+      {"id": "contractors", "kind": "team", "members": ["github:jdoe"], "defaultEffect": "ask", "rules": []},
+      {"id": "reviewer-agent", "kind": "subagent", "agentTypes": ["code-reviewer"], "rules": [{"id": "reviewer-no-
+edit", "effect": "deny", "match": "Edit", "reason": "Reviewers do not edit"}]}
+    ]
+  }
+
+enforcement is dry_run (default, decisions recorded, nothing blocked) or enforce. scope is enrolled-repos (default:
+only sessions in enrolled repositories are decided) or all-sessions (sessions anywhere on an enrolled device are
+decided, where the hooks are installed for every project; receipts are still only signed in enrolled repositories).
+Every policy also carries built-in rules no author can remove: agents cannot read or change Euthyne's state, keys and
+policy cache, cannot change their own hook settings, and can only run read-only euthyne commands. onUndecidable
+(default deny) applies when an action can't be evaluated or the cached policy is too old. defaultEffect (default
+allow) applies to actions no rule matches. Rules use Claude Code's Tool(pattern) syntax for every agent, plus
+Mode(bypassPermissions) to ask or deny by permission mode. Grants narrow the policy for a team, a person or a subagent
+type, and can never widen it.
+
+USAGE
+
+  euthyne policy publish <policy.json> [--flags]
+
+FLAGS
+
+  --out       Also write the signed credential to this file
+  --server    Euthyne API base URL (env EUTHYNE_SERVER, default the enrolled server)
+```
+
+```text
+✓ Published policy default v3, 3f9a0c1b2d4e, logged at index 912
+  Dry run: devices sign every decision into receipts and block nothing. Set "enforcement": "enforce" and publish again to block.
+```
+
+With `"enforcement": "enforce"`, the second line says devices block denied Claude Code and Codex actions once they refresh, within the refresh interval.
+
+## euthyne policy show
+
+Reads the cache on this machine. With `--refresh` it fetches the policy and its status list first. Agents may run it: it is one of the read-only commands the [built-in rules](/docs/concepts/policy#built-in-rules) allow.
+
+```text
+Prints the org policy this machine decides with: its version, digest, issuer pinned on first fetch, mode and
+freshness, its rules, then the latest decisions it signed into receipts here, with dry-run ones marked as would-block.
+--refresh fetches the policy and its status list first, which euthyne sync also does in the background.
+
+USAGE
+
+  euthyne policy show [--flags]
+
+FLAGS
+
+  --refresh   Fetch the policy and its status list from the server first
+  --server    Euthyne API base URL (env EUTHYNE_SERVER, default the enrolled server)
+```
+
+```text
+✓ Org policy default v3 3f9a0c1b2d4e · dry run, nothing is blocked
+  issuer did:key:z6Mk… · refreshed 2026-10-22T09:14:02Z · valid until 2027-01-20T09:10:44Z
+  default allow · undecidable deny · scope enrolled-repos
+  built-in: agents cannot touch Euthyne's state or their hook settings, or run admin euthyne commands
+  deny  no-push              Bash(git push:*)
+  deny  env-files            Read(./.env)
+  ask   prod-db              mcp__prod-db
+  grant contractors (team) · 0 rules
+
+Latest decisions on this machine (2):
+  2026-10-22 09:20:11 claude-code Bash         would deny    rule no-push
+  2026-10-22 09:18:40 codex       Bash         allowed       rule default
+```
+
+Enforced, the mode reads `enforced for Claude Code and Codex`, and the decisions read `blocked` or `asked`. A policy that cannot be used, for example revoked or not refreshed in time, gets a warning line with the effect every tool call now gets. On a machine with no policy it prints `No org policy on this machine: agents are recorded, nothing is decided or blocked.`
+
+## euthyne policy revoke
+
+Revokes the version in force, or the one at `--index`. Revocation is final. Devices deny every Claude Code and Codex tool call once they see it, until you publish a new version. Publishing a new version already revokes the one before, so you only need this to withdraw a version without replacing it.
+
+```text
+Sets the version's bit in the org's Bitstring Status List, signs the list with the org key and publishes it.
+Revocation is final. Devices see it on their next refresh; a device whose policy in force is revoked denies every
+Claude Code and Codex tool call until a new version is published, whatever the policy said about undecidable actions.
+
+USAGE
+
+  euthyne policy revoke [--flags]
+
+FLAGS
+
+  --index     Status list index to revoke (default the version in force)
+  --server    Euthyne API base URL (env EUTHYNE_SERVER, default the enrolled server)
+```
+
+```text
+✓ Revoked status index 3
+! That is the version in force: devices deny every agent tool call once they refresh, until you publish a new version
+```
+
+## euthyne policy trust
+
+A device pins the org key that signed the first policy it fetched. When an admin moves to a new org key, they send you the new `did:key`, and you run this once. Check the key with your admin through a channel you trust: whoever holds the key you trust decides what your agents may do.
+
+```text
+This device pins the org key that signed the first policy it fetched and refuses policies signed by any other key.
+Trusting the same key again keeps its revocations and newest status list; trusting another key starts afresh for that
+key. Receipts name the trusted key and when you trusted it. After an admin moves to a new org key, run this with the
+did:key they give you, out of band. Until the next refresh, agent tool calls are denied.
+
+USAGE
+
+  euthyne policy trust <did:key> [--flags]
+```
+
+```text
+✓ Org policies signed by did:key:z6Mk… are trusted on this machine; run euthyne policy show --refresh
+```

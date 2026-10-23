@@ -1,23 +1,100 @@
 ---
 title: euthyne verify
-description: Verify receipts on your machine.
+description: Check a receipt bundle, or replay the policy decision it carries.
 ---
 
-<Callout title="Coming soon">Planned command. Not released yet.</Callout>
+<Callout title="Preview">Flags may change.</Callout>
 
 ```bash
-euthyne verify receipt.json --offline
+euthyne verify <receipt-file>
 euthyne verify --last
+euthyne verify --last --offline
+euthyne verify --replay rcpt_01K7….json
 ```
 
-Runs [the four checks](/docs/spec/checks) locally. It never asks Euthyne's servers for a verdict.
+Checks a receipt bundle on your machine. It never asks Euthyne's servers for a verdict. The only network calls fetch the independent timestamp proof and public block headers when the bundle lacks them, and `--offline` skips those too.
+
+A bundle is the receipt plus its log proof, and the proof of the mandate it cites. [`sync`](/docs/cli/sync) saves one per receipt under `<home>/bundles/`.
+
+## Flags
 
 | Flag | Effect |
 | --- | --- |
-| `--last` | Verifies your most recent receipt |
-| `--offline` | Runs only the steps that need no network |
-| `--anchor-node <url>` | Checks the anchor against your own node |
+| `--last` | Verifies the most recent bundle synced on this machine |
+| `--json` | Prints the verdict as JSON |
+| `--offline` | Does not fetch the timestamp proof or block headers. The timestamp row then reads not checked |
+| `--anchor-node <url>` | An Esplora-compatible API of a node you trust, used instead of the two public block header sources. `EUTHYNE_ESPLORA_URLS` replaces the public sources |
+| `--server <url>` | The Euthyne log to fetch the timestamp proof from. Also `EUTHYNE_SERVER`. Defaults to the server this device enrolled with |
+| `--replay` | Replays the policy decision of each receipt file instead. See [Replay a policy decision](#replay-a-policy-decision) |
+| `--policy <file>` | With `--replay`: a signed policy version the receipts cite. Repeatable. Defaults to the local cache, then the server by ID and digest |
+| `--export <file>` | With `--replay`: writes the opened decision inputs and their salts to this file, for a third party |
+| `--disclosure <file>` | With `--replay`: the file another machine wrote with `--export` |
 
-Exits with `0` when the checks pass and `1` when one fails.
+Pass either a file or `--last`, not both.
 
-See [Offline verification](/docs/spec/offline-verification) for what runs offline.
+## The checks
+
+| Check | Passes when |
+| --- | --- |
+| Format | The bundle parses in its canonical form |
+| Statement | The payload is an in-toto Statement v1 with the action receipt predicate |
+| Session key | The device key certified the session key, for this session, org and human, and the receipt's time is inside the key's validity |
+| Signature | The session key signed the receipt |
+| Log inclusion | The receipt is in the log under a checkpoint signed by the trusted log key |
+| Consistency | That checkpoint matches the one this machine saw at the same size. When this machine never saw that size, it is reported as not checked offline, and the verdict is not affected |
+| Timestamp | The log checkpoint covering the receipt was timestamped independently and anchored on chain, checked against block headers from two public sources or your own node. A timestamp still pending, or not checked with `--offline`, does not change the verdict |
+
+The trusted log key is built into the binary. `--log-key` or `EUTHYNE_LOG_KEY` overrides it, with a warning.
+
+## The mandate row
+
+When the receipt cites a [mandate](/docs/concepts/mandates), a separate row checks it:
+
+- the mandate's signature verifies, and it was issued by this session's key,
+- its digest, ID and version are the ones the receipt cites,
+- its session, org, human and device match the receipt,
+- the receipt's time is within the mandate's validity,
+- the mandate is in the log at a lower index than the receipt.
+
+If the last point fails, the row says "This mandate was recorded after the action". A failing mandate row is reported on its own line and does not change the receipt's verdict. The check result itself (in, out or unknown) is shown, never judged.
+
+## Output
+
+```text
+✓ Genuine rcpt_01K7…
+  PostToolUse · Bash · claude-code · model claude-opus-5-5 · git@github.com:acme/app.git
+  org acme · human euthyne:usr_01K9… · 2026-10-12 09:20:11 UTC
+  check in · rule Bash(npm run test:*) · from rule_match · mode default · mandate v1 3f9a0c1b2d4e
+  tokens 1200 in · 340 out · 0 cache read · 0 cache write · $0.0123 · 1 requests · 2.1 s API
+
+✓ Format         canonical receipt bundle
+✓ Statement      in-toto Statement v1, https://euthyne.com/attestation/action/v1
+✓ Session key    certified by device sha256:…, valid until 2026-10-13T09:14:02Z
+✓ Signature      signed by session key sha256:…
+✓ Log inclusion  entry 812 of 815 in …, checkpoint signed by the log key
+✓ Consistency    checkpoint of size 815 matches the one seen before
+✓ Mandate        v1 logged at index 790 before the receipt at 812, signed by the session key
+```
+
+A receipt that fails prints `✗ Tampered: this receipt does not match its signature or its log entry`, with the failing check marked.
+
+## Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| `0` | Genuine, including with the timestamp still pending |
+| `1` | Tampered: a check failed. With `--replay`, a decision that does not match |
+| `2` | Could not check: no file, no synced bundle yet, no trusted log key, or wrong arguments. With `--replay`, a decision that cannot be replayed |
+
+## Replay a policy decision
+
+When an [org policy](/docs/concepts/policy) decided a tool call, the receipt carries the decision and cites the signed policy version. `--replay` re-runs that decision offline, from the committed decision input, working directory and project directory, against that exact version, and reports any mismatch.
+
+The decision input is committed as salted hashes, so only the machine that signed the receipt can open it. To let someone else replay, run `euthyne verify --replay --export inputs.json <receipt-files>` on that machine and hand them the file. They run `euthyne verify --replay --disclosure inputs.json <receipt-files>`, with `--policy` for the signed version if they do not have it.
+
+## Soon
+
+- Verifying from a share link or a pull request URL.
+- The session chain and key revocation checks.
+
+See [Offline verification](/docs/spec/offline-verification) for the draft spec.
